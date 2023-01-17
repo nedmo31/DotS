@@ -297,10 +297,10 @@ public class App {
         // get the Postgres configuration from the environment
         Map<String, String> env = System.getenv();
         String db_url = env.get("DATABASE_URL");
-        String ip = env.get("POSTGRES_IP");
-        String port = env.get("POSTGRES_PORT");
-        String user = env.get("POSTGRES_USER");
-        String pass = env.get("POSTGRES_PASS");
+        // String ip = env.get("POSTGRES_IP");
+        // String port = env.get("POSTGRES_PORT");
+        // String user = env.get("POSTGRES_USER");
+        // String pass = env.get("POSTGRES_PASS");
         
         // Get a fully-configured connection to the database, or exit 
         // immediately
@@ -327,7 +327,8 @@ public class App {
             } else if (tableAction == '+') {
                 db.createTables();
             } else if (tableAction == '-') {
-                db.dropTables();
+                String name = getString(in, "Enter table name to drop");
+                db.dropTable(name);
             } else {
                 continue;
             }

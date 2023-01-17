@@ -125,7 +125,7 @@ public class Database {
             URI dbUri = new URI(db_url);
             String username = dbUri.getUserInfo().split(":")[0];
             String password = dbUri.getUserInfo().split(":")[1];
-            String dbUrl = "jdbc:postgresql://" + dbUri.getHost() + ':' + dbUri.getPort() + dbUri.getPath();
+            String dbUrl = "jdbc:postgresql://" + dbUri.getHost() + ":5432" + dbUri.getPath();
             Connection conn = DriverManager.getConnection(dbUrl, username, password);
             if (conn == null) {
                 System.err.println("Error: DriverManager.getConnection() returned a null object");
@@ -156,12 +156,12 @@ public class Database {
             // creation/deletion, so multiple executions will cause an exception
             db.mCreateUsers = db.mConnection.prepareStatement(
                     "CREATE TABLE Users( uid SERIAL PRIMARY KEY, username VARCHAR(20) " + 
-                    "UNIQUE NOT NULL, password VARCHAR(25) NOT NULL, INTEGER money NOT NULL)");
-            db.mDropTables = db.mConnection.prepareStatement("DROP TABLE Users, Teams, Ownerships");
+                    "UNIQUE NOT NULL, password VARCHAR(25) NOT NULL, money INTEGER NOT NULL)");
+            db.mDropTables = db.mConnection.prepareStatement("DROP TABLE ?");
             db.mCreateTeams = db.mConnection.prepareStatement("CREATE TABLE Teams( tid SERIAL PRIMARY KEY, name VARCHAR(30), " + 
-            "INTEGER price NOT NULL, INTEGER wins NOT NULL, INTEGER losses NOT NULL, INTEGER pointsfor NOT NULL, INTEGER poinstagainst NOT NULL)");
+            "price INTEGER NOT NULL, wins INTEGER NOT NULL, losses INTEGER NOT NULL, pointsfor INTEGER NOT NULL, pointsagainst INTEGER NOT NULL)");
             //TODO make the ids foreign keys
-            db.mCreateOwnerships = db.mConnection.prepareStatement("CREATE TABLE Ownerships( INTEGER uid, INTEGER tid, INTEGER count)");
+            db.mCreateOwnerships = db.mConnection.prepareStatement("CREATE TABLE Ownerships( uid INTEGER NOT NULL, tid INTEGER NOT NULL, count INTEGER NOT NULL)");
 
             // Delete prepared statements
             db.mUsersDeleteOne = db.mConnection.prepareStatement("DELETE FROM Users WHERE uid = ?");
@@ -180,7 +180,7 @@ public class Database {
             
             // Select all prepared statements
             db.mUsersSelectAll = db.mConnection.prepareStatement("SELECT * FROM Users ORDER BY money");
-            db.mTeamsSelectAll = db.mConnection.prepareStatement("SELECT * FROM Comments ORDER BY price");
+            db.mTeamsSelectAll = db.mConnection.prepareStatement("SELECT * FROM Teams ORDER BY price");
             db.mOwnershipsSelectAll = db.mConnection.prepareStatement("SELECT * FROM Ownerships ORDER BY uid");
             
             // Might just not use these and only use select all
@@ -254,8 +254,8 @@ public class Database {
     int usersInsertRow(String username, String password) {
         int count = 0;
         try {
-            mUsersInsertOne.setString(2, username);
-            mUsersInsertOne.setString(3, password);
+            mUsersInsertOne.setString(1, username);
+            mUsersInsertOne.setString(2, password);
             count += mUsersInsertOne.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -458,9 +458,17 @@ public class Database {
      */
     void createTables() {
         try {
-            boolean success = mCreateUsers.execute() && mCreateTeams.execute() && mCreateOwnerships.execute();
-            if (!success)
-                System.out.println("Couldn't add tables to DB");
+            //TODO remove if statements they're garbage
+            if (mCreateUsers.execute()) {
+                System.out.println("Couldn't add Users to DB");
+            }
+            if (mCreateTeams.execute()) {
+                System.out.println("Couldn't add Teams to DB");
+            }
+            if (mCreateOwnerships.execute()) {
+                System.out.println("Couldn't add Ownerships to DB");
+            }
+                
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -469,10 +477,11 @@ public class Database {
     /**
      * Remove tables from the database
      */
-    void dropTables() {
+    void dropTable(String name) {
         try {
+            mDropTables = this.mConnection.prepareStatement("DROP TABLE "+name);
             if (mDropTables.execute()) 
-                System.out.println("Couldn't drop tables");
+                System.out.println("Couldn't drop "+name);
         } catch (SQLException e) {
             e.printStackTrace();
         }

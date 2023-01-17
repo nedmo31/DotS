@@ -9,7 +9,7 @@ public class UserRow {
 
     public String username, password;
 
-    UserRow(int uid, int money, String username, String password) {
+    UserRow(int uid, String username, String password, int money) {
         this.uid = uid; this.money = money;
         this.username = username; this.password = password;
     }

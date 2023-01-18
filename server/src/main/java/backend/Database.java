@@ -163,16 +163,14 @@ public class Database {
             //     as constants, and then build the strings for the statements
             //     from those constants.
 
-            // Note: no "IF NOT EXISTS" or "IF EXISTS" checks on table 
-            // creation/deletion, so multiple executions will cause an exception
             db.mCreateUsers = db.mConnection.prepareStatement(
-                    "CREATE TABLE Users( uid SERIAL PRIMARY KEY, username VARCHAR(20) " + 
+                    "CREATE TABLE IF NOT EXISTS Users( uid SERIAL PRIMARY KEY, username VARCHAR(20) " + 
                     "UNIQUE NOT NULL, password VARCHAR(25) NOT NULL, money INTEGER NOT NULL)");
             db.mDropTables = db.mConnection.prepareStatement("DROP TABLE ?");
-            db.mCreateTeams = db.mConnection.prepareStatement("CREATE TABLE Teams( tid SERIAL PRIMARY KEY, name VARCHAR(30), " + 
-            "price INTEGER NOT NULL, wins INTEGER NOT NULL, losses INTEGER NOT NULL, pointsfor INTEGER NOT NULL, pointsagainst INTEGER NOT NULL)");
+            db.mCreateTeams = db.mConnection.prepareStatement("CREATE TABLE IF NOT EXISTS Teams( tid SERIAL PRIMARY KEY, name VARCHAR(30), " + 
+            "price INTEGER NOT NULL, wins INTEGER NOT NULL, losses INTEGER NOT NULL, pointsfor INTEGER NOT NULL, pointsagainst INTEGER NOT NULL, lastprice INTEGER NOT NULL)");
             //TODO make the ids foreign keys
-            db.mCreateOwnerships = db.mConnection.prepareStatement("CREATE TABLE Ownerships( uid INTEGER NOT NULL, tid INTEGER NOT NULL, count INTEGER NOT NULL)");
+            db.mCreateOwnerships = db.mConnection.prepareStatement("CREATE TABLE IF NOT EXISTS Ownerships( uid INTEGER NOT NULL, tid INTEGER NOT NULL, count INTEGER NOT NULL)");
 
             // Delete prepared statements
             db.mUsersDeleteOne = db.mConnection.prepareStatement("DELETE FROM Users WHERE uid = ?");
@@ -181,11 +179,12 @@ public class Database {
             
             // Insert prepared statements
             db.mUsersInsertOne = db.mConnection.prepareStatement("INSERT INTO Users (uid, username, password, money) VALUES (default, ?, ?, 200)");
-            db.mTeamsInsertOne = db.mConnection.prepareStatement("INSERT INTO Teams (tid, name, price, wins, losses, pointsfor, pointsagainst) VALUES (default, ?, ?, ?, ?, ?, ?)");
+            db.mTeamsInsertOne = db.mConnection.prepareStatement("INSERT INTO Teams (tid, name, price, wins, losses, pointsfor, pointsagainst, lastprice) VALUES (?, ?, ?, ?, ?, ?, ?, 0)");
             db.mOwnershipsInsertOne = db.mConnection.prepareStatement("INSERT INTO Ownerships (uid, tid, count) VALUES (?, ?, ?)");
 
             // Update prepared statements
             db.mUsersUpdateOne = db.mConnection.prepareStatement("UPDATE Users SET money = ? WHERE uid = ?");
+            // Don't use mTeamsUpdateOne right now
             db.mTeamsUpdateOne = db.mConnection.prepareStatement("UPDATE Teams SET price = ?, wins = ?, losses = ?, pointsfor = ?, pointsagainst = ? WHERE tid = ?");
             db.mOwnershipsUpdateOne = db.mConnection.prepareStatement("UPDATE Ownerships SET count = ?, WHERE uid = ? AND tid = ?");
             
@@ -366,15 +365,16 @@ public class Database {
      * 
      * @return The number of rows that were inserted
      */
-    int teamInsertRow(String name, int price, int wins, int losses, int pointsfor, int poinstagainst) {
+    int teamInsertRow(int tid, String name, int price, int wins, int losses, int pointsfor, int poinstagainst) {
         int count = 0;
         try {
-            mTeamsInsertOne.setString(1, name);
-            mTeamsInsertOne.setInt(2, price);
-            mTeamsInsertOne.setInt(3, wins);
-            mTeamsInsertOne.setInt(4, losses);
-            mTeamsInsertOne.setInt(5, pointsfor);
-            mTeamsInsertOne.setInt(6, poinstagainst);
+            mTeamsInsertOne.setInt(1, tid);
+            mTeamsInsertOne.setString(2, name);
+            mTeamsInsertOne.setInt(3, price);
+            mTeamsInsertOne.setInt(4, wins);
+            mTeamsInsertOne.setInt(5, losses);
+            mTeamsInsertOne.setInt(6, pointsfor);
+            mTeamsInsertOne.setInt(7, poinstagainst);
             count += mTeamsInsertOne.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -428,7 +428,8 @@ public class Database {
             ResultSet rs = mTeamsSelectAll.executeQuery();
             while (rs.next()) {
                 res.add(new TeamRow(rs.getInt("tid"), rs.getString("name"), rs.getInt("price"),
-                 rs.getInt("wins"), rs.getInt("losses"), rs.getInt("pointsfor"), rs.getInt("pointsagainst")));
+                 rs.getInt("wins"), rs.getInt("losses"), rs.getInt("pointsfor"),
+                  rs.getInt("pointsagainst"), rs.getInt("lastprice")));
             }
             rs.close();
             return res;
@@ -655,7 +656,7 @@ public class Database {
      * NOTE: as of now this just adds all the table I think I need to the database :)
      * 
      */
-    void createTables() {
+    boolean createTables() {
         try {
             //TODO remove if statements they're garbage
             if (mCreateUsers.execute()) {
@@ -667,10 +668,11 @@ public class Database {
             if (mCreateOwnerships.execute()) {
                 System.out.println("Couldn't add Ownerships to DB");
             }
-                
+            return true;
         } catch (SQLException e) {
             e.printStackTrace();
         }
+        return false;
     }
 
     /**

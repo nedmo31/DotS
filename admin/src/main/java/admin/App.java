@@ -183,13 +183,14 @@ public class App {
                     continue;
                 System.out.println("  " + res + " rows deleted");
             } else if (action == '+') {
+                int tid = getInt(in, "Enter the teamID");
                 String name = getString(in, "Enter the name");
                 int price = getInt(in, "Enter the price");
                 int wins = getInt(in, "Enter the wins");
                 int losses = getInt(in, "Enter the losses");
                 int pointsfor = getInt(in, "Enter the pointsfor");
                 int pointsagainst = getInt(in, "Enter the pointsagainst");
-                int res = db.teamInsertRow(name, price, wins, losses, pointsfor, pointsagainst);
+                int res = db.teamInsertRow(tid, name, price, wins, losses, pointsfor, pointsagainst);
                 System.out.println(res + " rows added");
             } else if (action == '~') {
                 int id = getInt(in, "Enter the team ID");
@@ -198,7 +199,8 @@ public class App {
                 int losses = getInt(in, "Enter the losses");
                 int pointsfor = getInt(in, "Enter the pointsfor");
                 int pointsagainst = getInt(in, "Enter the pointsagainst");
-                int res = db.teamsUpdateOne(id, price, wins, losses, pointsfor, pointsagainst);
+                int lastprice = getInt(in, "Enter the lastprice");
+                int res = db.teamsUpdateOne(id, price, wins, losses, pointsfor, pointsagainst, lastprice);
                 if (res == -1)
                     continue;
                 System.out.println("  " + res + " rows updated");
@@ -304,6 +306,7 @@ public class App {
         
         // Get a fully-configured connection to the database, or exit 
         // immediately
+
         Database db = Database.getDatabase(db_url);
         if (db == null)
             return;

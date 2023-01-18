@@ -104,25 +104,22 @@ public class App {
             return gson.toJson(new StructuredResponse("ok", null, db.teamsSelectAll()));
         });
 
-        // // Route to login and get a session ID using your verified email
-        // Spark.post("/login", (request, response) -> {
-        //     response.status(200);
-        //     response.type("application/json");
+        // Route to login 
+        Spark.post("/login", (request, response) -> {
+            response.status(200);
+            response.type("application/json");
 
-        //     SimpleRequest req = gson.fromJson(request.body(), SimpleRequest.class);
-        //     int uid;
-        //     if (!db.userExists(req.mContent)) {
-        //         uid = db.addUser(req.mContent);
-        //     } else {
-        //         uid = db.getUserId(req.mContent);
-        //         removePastLogin(userHashMap, uid);
-        //     }
-            
-        //     //TODO check for -1
-        //     userHashMap.put(++lastSessionID, uid);
+            LoginRequest req = gson.fromJson(request.body(), LoginRequest.class);
 
-        //     return gson.toJson(new StructuredResponse("ok", null, new Session(lastSessionID, uid)));
-        // });
+            int uid = db.signupOrLogin(req.username, req.password);
+            if (uid == -2) {
+                return gson.toJson(new StructuredResponse("error", "Incorrect Password", uid));
+            } else if (uid == -1) {
+                return gson.toJson(new StructuredResponse("error", "Error on login", uid));
+            } else {
+                return gson.toJson(new StructuredResponse("ok", null, uid));
+            }
+        });
 
 
         // POST route to make a trade
@@ -143,7 +140,7 @@ public class App {
                 return gson.toJson(new StructuredResponse("error", "error on purchase/sell", null));
             }
 
-            return gson.toJson(new StructuredResponse("ok", null, null));
+            return gson.toJson(new StructuredResponse("ok", null, res));
 
         });
 

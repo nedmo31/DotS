@@ -1,6 +1,8 @@
 Transactions : 
     POST    /trade     send JSON : {uid, isBuy, tid, amount}    e.g. {1, true, 2, 4}  user 1 buys 4 shares of team 2
 
+    POST    /login    send JSON : {username, password}         returns JSON {uid}
+
 
 Data Pull : 
     GET     /users          returns JSON {[{uid, username, networth, money, []}, ...]} returns of a list of users with their name and net worth

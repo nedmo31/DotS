@@ -110,6 +110,8 @@ public class Database {
 
     private PreparedStatement mGetUserOwnership;
 
+    private PreparedStatement mGetUserID;
+
     /**
      * The Database constructor is private: we only create Database objects 
      * through the getDatabase() method.
@@ -175,7 +177,7 @@ public class Database {
             // Delete prepared statements
             db.mUsersDeleteOne = db.mConnection.prepareStatement("DELETE FROM Users WHERE uid = ?");
             db.mTeamsDeleteOne = db.mConnection.prepareStatement("DELETE FROM Teams WHERE tid = ?");
-            db.mOwnershipsDeleteOne = db.mConnection.prepareStatement("DELETE FROM Ownershipss WHERE uid = ? AND tid = ?");
+            db.mOwnershipsDeleteOne = db.mConnection.prepareStatement("DELETE FROM Ownerships WHERE uid = ? AND tid = ?");
             
             // Insert prepared statements
             db.mUsersInsertOne = db.mConnection.prepareStatement("INSERT INTO Users (uid, username, password, money) VALUES (default, ?, ?, 200)");
@@ -185,7 +187,7 @@ public class Database {
             // Update prepared statements
             db.mUsersUpdateOne = db.mConnection.prepareStatement("UPDATE Users SET money = ? WHERE uid = ?");
             db.mTeamsUpdateOne = db.mConnection.prepareStatement("UPDATE Teams SET price = ?, wins = ?, losses = ?, pointsfor = ?, pointsagainst = ? WHERE tid = ?");
-            db.mOwnershipsUpdateOne = db.mConnection.prepareStatement("UPDATE Ownerships SET count = ?, WHERE uid = ?, tid = ?");
+            db.mOwnershipsUpdateOne = db.mConnection.prepareStatement("UPDATE Ownerships SET count = ?, WHERE uid = ? AND tid = ?");
             
             // Select all prepared statements
             db.mUsersSelectAll = db.mConnection.prepareStatement("SELECT * FROM Users ORDER BY money");
@@ -195,7 +197,9 @@ public class Database {
             db.mGetOwnerships = db.mConnection.prepareStatement("SELECT * FROM Ownerships WHERE uid = ?");
             db.mGetTeam = db.mConnection.prepareStatement("SELECT * FROM Teams WHERE tid=?");
             db.mGetUser = db.mConnection.prepareStatement("SELECT * FROM Users WHERE uid=?");
-            db.mGetUserOwnership = db.mConnection.prepareStatement("SELECT * FROM Ownerships WHERE uid = ?, tid = ?");
+
+            db.mGetUserOwnership = db.mConnection.prepareStatement("SELECT * FROM Ownerships WHERE uid = ? AND tid = ?");
+            db.mGetUserID = db.mConnection.prepareStatement("SELECT * FROM Users WHERE username = ?");
 
             
             // Might just not use these and only use select all
@@ -248,21 +252,33 @@ public class Database {
         } 
         else {
             if (usersUpdateOne(uid, spendable-cost) == -1) {
+                System.out.println("Failed to update user");
                 return -1;
             }
-            try {
+            addOwnerships(uid, tid, amount);
+        }
+        return amount;
+    }
+
+    int addOwnerships(int uid, int tid, int amount) {
+        int current = getUserOwnership(uid, tid);
+        try {
+            if (current <= 0) {
                 mOwnershipsInsertOne.setInt(1, uid);
                 mOwnershipsInsertOne.setInt(2, tid);
                 mOwnershipsInsertOne.setInt(3, amount);
-                if (mOwnershipsInsertOne.executeUpdate() == -1) {
-                    return -1;
-                }
-            } catch (SQLException e) {
-                e.printStackTrace();
+                mOwnershipsInsertOne.executeUpdate();
+                return amount;
+            } else {
+                ownershipsUpdateOne(uid, tid, amount + current);
+                return current + amount;
             }
             
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
-        return amount;
+        return -1;
+        
     }
 
     int userSell(int uid, int tid, int amount) {
@@ -270,13 +286,64 @@ public class Database {
         int gained = 0;
         if (amount >= owned) {
             ownershipsDeleteRow(uid, tid);
+            gained = owned * getTeamPrice(tid);
         } else {
             ownershipsUpdateOne(uid, tid, owned - amount);
+            gained = amount * getTeamPrice(tid);
         }   
         if (usersUpdateOne(uid, gained + getUser(uid).money) == -1) {
+            System.out.println("Failed to update user");
             return -1;
         }
         return gained;
+    }
+
+    
+    /**
+     * Method to either sign up or log in, since they're very similar 
+     * 
+     * @return -2 for denied access. -1 for error. userID on success
+     */
+    int signupOrLogin(String username, String password) {
+        String name = "";
+        String pass = "";
+        int id = -1;
+        try {
+            mGetUserID.setString(1, username);
+            ResultSet rs = mGetUserID.executeQuery();
+            if (rs.next()) {
+                name = rs.getString("username");
+                pass = rs.getString("password");
+                id = rs.getInt("uid");
+            }
+            // if username doesn't exist, make new user
+            if (name.equals("")) {
+                usersInsertRow(username, password);
+                return getUserID(username);
+            
+            // else, check if the password is right
+            } else {
+                if (!password.equals(pass)) {
+                    return -2;
+                } 
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return id;
+    }
+
+    int getUserID(String username) {
+        try {
+            mGetUserID.setString(1, username);
+            ResultSet rs = mGetUserID.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("uid");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
     }
 
     int getUserOwnership(int uid, int tid) {
@@ -383,7 +450,7 @@ public class Database {
             while (rs.next()) {
                 int uid = rs.getInt("uid");
                 int money = rs.getInt("money");
-                int networth = getUserStockValue(uid);
+                int networth = getUserStockValue(uid) + money;
                 res.add(new UserRow(uid, rs.getString("username"), networth, money, new ArrayList<OwnershipsRow>()));
             }
             rs.close();
@@ -400,7 +467,7 @@ public class Database {
             ResultSet rs = mGetUser.executeQuery();
             if (rs.next()) {
                 int money = rs.getInt("money");
-                int networth = getUserStockValue(uid);
+                int networth = getUserStockValue(uid) + money;
                 return new UserRow(uid, rs.getString("username"), networth, money, getUserOwnerships(uid));
             }
         } catch (SQLException e) {
@@ -535,8 +602,8 @@ public class Database {
     int usersUpdateOne(int uid, int money) {
         int res = -1;
         try {
-            mUsersUpdateOne.setInt(1, uid);
-            mUsersUpdateOne.setInt(2, money);
+            mUsersUpdateOne.setInt(1, money);
+            mUsersUpdateOne.setInt(2, uid);
             res = mUsersUpdateOne.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();

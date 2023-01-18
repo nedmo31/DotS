@@ -23,6 +23,7 @@ public class App {
         System.out.println("  [U] Users");
         System.out.println("  [O] Ownserships");
         System.out.println("  [T] Teams");
+        System.out.println("  [A] Update Data");
         System.out.println("  [q] Quit the program");
         System.out.println("  [?] Help (this message)");
     }
@@ -172,7 +173,8 @@ public class App {
                 System.out.println("  Current Database Contents");
                 System.out.println("  -------------------------");
                 for (TeamRow rd : res) {
-                    System.out.println("  [" + rd.tid + "] Name: " + rd.name + ", Record: " + rd.wins + "-" + rd.losses + "\tPoints Record: " + rd.pointsfor + "-" + rd.pointsagainst);
+                    System.out.println("  [" + rd.tid + "] Name: " + rd.name + ", Record: " + rd.wins + "-" + rd.losses + 
+                    "\tPoints Record: " + rd.pointsfor + "-" + rd.pointsagainst + "price change"+rd.lastprice+" -> " +rd.price);
                 }
             } else if (action == '-') {
                 int id = getInt(in, "Enter the row ID");
@@ -299,8 +301,8 @@ public class App {
         // get the Postgres configuration from the environment
         Map<String, String> env = System.getenv();
         String db_url = env.get("DATABASE_URL");
-        // String ip = env.get("POSTGRES_IP");
-        // String port = env.get("POSTGRES_PORT");
+        int leagueID = Integer.parseInt(env.get("LEAGUE_ID"));
+        String apiKey = env.get("API_KEY");
         // String user = env.get("POSTGRES_USER");
         // String pass = env.get("POSTGRES_PASS");
         
@@ -313,10 +315,11 @@ public class App {
 
         // Start our basic command-line interpreter:
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+        StatCollector statCollector;
         
         // Loop trough the menu selection
         while (true) {
-            char tableAction = prompt(in, "+-UOTq?");
+            char tableAction = prompt(in, "+-UOTAq?");
             if (tableAction == 'q') {
                 break;
             } else if (tableAction == '?') {
@@ -332,6 +335,11 @@ public class App {
             } else if (tableAction == '-') {
                 String name = getString(in, "Enter table name to drop");
                 db.dropTable(name);
+            } else if (tableAction == 'A') {
+                long lastMatchID = Long.parseLong(getString(in, "Enter the last matchID. Stop and make sure you know what you're doing"));
+                statCollector = new StatCollector(db, leagueID, lastMatchID, apiKey);
+                int gamesRead = statCollector.update();
+                System.out.println("Successfully? processed "+gamesRead+" games");
             } else {
                 continue;
             }

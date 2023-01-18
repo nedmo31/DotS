@@ -184,8 +184,7 @@ public class Database {
 
             // Update prepared statements
             db.mUsersUpdateOne = db.mConnection.prepareStatement("UPDATE Users SET money = ? WHERE uid = ?");
-            // Don't use mTeamsUpdateOne right now
-            db.mTeamsUpdateOne = db.mConnection.prepareStatement("UPDATE Teams SET price = ?, wins = ?, losses = ?, pointsfor = ?, pointsagainst = ? WHERE tid = ?");
+            db.mTeamsUpdateOne = db.mConnection.prepareStatement("UPDATE Teams SET price = ?, wins = ?, losses = ?, pointsfor = ?, pointsagainst = ?, lastprice = ? WHERE tid = ?");
             db.mOwnershipsUpdateOne = db.mConnection.prepareStatement("UPDATE Ownerships SET count = ?, WHERE uid = ? AND tid = ?");
             
             // Select all prepared statements
@@ -619,13 +618,16 @@ public class Database {
      */
     int teamsUpdateOne(int tid, int price, int wins, int losses, int pointsfor, int pointsagainst) {
         int res = -1;
+        int oldprice = getTeamPrice(tid);
         try {
-            mTeamsUpdateOne.setInt(1, tid);
-            mTeamsUpdateOne.setInt(2, price);
-            mTeamsUpdateOne.setInt(3, wins);
-            mTeamsUpdateOne.setInt(4, losses);
-            mTeamsUpdateOne.setInt(5, pointsfor);
-            mTeamsUpdateOne.setInt(6, pointsagainst);
+            //price = ?, wins = ?, losses = ?, pointsfor = ?, pointsagainst = ?, lastprice = ? WHERE tid = ?
+            mTeamsUpdateOne.setInt(1, price);
+            mTeamsUpdateOne.setInt(2, wins);
+            mTeamsUpdateOne.setInt(3, losses);
+            mTeamsUpdateOne.setInt(4, pointsfor);
+            mTeamsUpdateOne.setInt(5, pointsagainst);
+            mTeamsUpdateOne.setInt(6, oldprice);
+            mTeamsUpdateOne.setInt(7, tid);
             res = mTeamsUpdateOne.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();

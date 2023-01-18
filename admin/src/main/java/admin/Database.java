@@ -101,6 +101,8 @@ public class Database {
      */
     private PreparedStatement mDropTables;
 
+    private PreparedStatement mGetTeam;
+
     /**
      * The Database constructor is private: we only create Database objects 
      * through the getDatabase() method.
@@ -182,6 +184,8 @@ public class Database {
             db.mUsersSelectAll = db.mConnection.prepareStatement("SELECT * FROM Users ORDER BY money");
             db.mTeamsSelectAll = db.mConnection.prepareStatement("SELECT * FROM Teams ORDER BY price");
             db.mOwnershipsSelectAll = db.mConnection.prepareStatement("SELECT * FROM Ownerships ORDER BY uid");
+
+            db.mGetTeam = db.mConnection.prepareStatement("SELECT * FROM Teams WHERE tid=?");
             
             // Might just not use these and only use select all
             /*  Select one prepared statements
@@ -363,6 +367,21 @@ public class Database {
             e.printStackTrace();
         }
         return res;
+    }
+
+    TeamRow getTeam(int tid) {
+        try {
+            mGetTeam.setInt(1, tid);
+            ResultSet rs = mGetTeam.executeQuery();
+            if (rs.next()) {
+                return new TeamRow(rs.getInt("tid"),rs.getString("name"), rs.getInt("price")
+                                , rs.getInt("wins"), rs.getInt("losses"), rs.getInt("pointsfor"),
+                                rs.getInt("pointsagainst"), rs.getInt("lastprice"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     /**

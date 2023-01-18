@@ -1,7 +1,5 @@
 package backend;
 
-import java.util.Map;
-
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
@@ -25,9 +23,7 @@ public class DatabaseTest extends TestCase {
 
     public void testDatabase() {
 
-        // Get the database url for testing
-        Map<String, String> env = System.getenv();
-        String db_url = env.get("TEST_DATABASE_URL");
+        String db_url = "postgres://aoyglvlm:uYWE0iYxFKGqSITz_3s0TbkQq80CaHuj@queenie.db.elephantsql.com/aoyglvlm";
         
         Database db = Database.getDatabase(db_url);
         assertTrue("Creation of Database", db.createTables());
@@ -48,6 +44,10 @@ public class DatabaseTest extends TestCase {
         db.userSell(uid, tid, 2);
         assertTrue("money from sale", db.getUser(uid).money == 210);
         assertTrue("Ownership count test 2", db.getUserOwnership(uid, tid) == 0);
+
+        db.teamsDeleteRow(tid);
+        db.usersDeleteRow(uid);
+        db.ownershipsDeleteRow(uid, tid);
         
     }
     

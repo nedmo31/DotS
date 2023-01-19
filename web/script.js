@@ -42,10 +42,7 @@ function openTab(evt, tabName) {
 async function getPortfolio(uid) {
     console.log("fetching users/"+uid)
     fetch('/users/'+uid)
-        .then((response) => {
-            console.log("response: "+response)
-            console.log("response.json(): "+response.json());
-        })
+        .then((response) => response.json())
         .then((data) => {  
             console.log(data)   
             const userInfo = data.mData.username + "\t\t\t\t\t$ " + data.mData.money
@@ -56,9 +53,15 @@ async function getPortfolio(uid) {
             }                
             for (i = 0; i < owned; i++) {
                 var insert = document.createElement("li");
-                const stockInfo = data.mData.ownerships[i].name + "\t\t\t Owned: " + data.mData.ownerships[i].count;
+
+                var sellButton = document.createElement("button")
+                sellButton.innerText = "Sell 1"
+                sellButton.style.fontSize = 'medium'
+
+                const stockInfo = data.mData.ownerships[i].tid + "\t\t\t Owned: " + data.mData.ownerships[i].count;
                 var stock = document.createTextNode(stockInfo);
                 insert.appendChild(stock)
+                insert.appendChild(sellButton)
                 document.getElementById("portfolio").appendChild(insert)
             }
         });
@@ -71,9 +74,15 @@ async function getTeams() {
             console.log(data.mData)
             for (i = 0; i < data.mData.length; i++) {
                 var insert = document.createElement("li");
-                const teaminfo = data.mData[i].name + "\t\t\t$ " + data.mData[i].price;
+
+                var buyButton = document.createElement("button")
+                buyButton.innerText = "Buy 1"
+                buyButton.style.fontSize = 'medium'
+
+                const teaminfo = '['+data.mData[i].tid+'] '+data.mData[i].name + "      $ " + data.mData[i].price;
                 var teamname = document.createTextNode(teaminfo);
                 insert.appendChild(teamname)
+                insert.appendChild(buyButton)
                 document.getElementById("teamList").appendChild(insert)
             }
         })
@@ -101,6 +110,5 @@ const username = prompt("Please enter username. New users will be registered");
 const pass = prompt("Please enter password");
 postData('/login', {'username':username, 'password':pass})
     .then((response) => getPortfolio(response.mData));
-
 
 

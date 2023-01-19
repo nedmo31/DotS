@@ -1,9 +1,37 @@
 <!DOCTYPE html>
 <html>
   <head>
-    Brandon help!
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>DotS</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js"></script>
   </head>
   <body>
-    <p>Test</p>
+
+    <!-- Tab links -->
+    <div class="tab">
+      <button class="tablinks" onclick="openTab(event, 'Home')">Home</button>
+      <button class="tablinks" onclick="openTab(event, 'Teams')">Teams</button>
+      <button class="tablinks" onclick="openTab(event, 'Social')">Social</button>
+    </div>
+
+    <!-- Tab content -->
+    <div id="Home" class="tabcontent"> 
+      <h2>Portfolio</h2>
+      <h4 id="portHeader"></div>
+      <ol id="portfolio"></ol>
+    </div>
+
+    <div id="Teams" class="tabcontent">
+      <h2>Teams</h2>
+      <ol id="teamList"></ol>
+    </div>
+
+    <div id="Social" class="tabcontent">
+      <h2>Social</h2>
+      <ol id="userList"></ol>
+    </div>
   </body>
 </html>

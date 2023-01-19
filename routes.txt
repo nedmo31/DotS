@@ -7,6 +7,6 @@ Transactions :
 Data Pull : 
     GET     /users          returns JSON {[{uid, username, networth, money, []}, ...]} returns of a list of users with their name and net worth
 
-    GET     /users/:uid     returns JSON {uid, username, networth, money, ownerships:[{uid, tid, count}, ...]} returns a user and their list of stocks
+    GET     /users/:uid     returns JSON {uid, username, networth, money, ownerships:[{uid, tid, count, name}, ...]} returns a user and their list of stocks
 
     GET     /teams          returns JSON { [ {tid, name, price, wins, losses, pointsfor, pointsagainst}, ...] }

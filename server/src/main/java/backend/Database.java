@@ -185,7 +185,7 @@ public class Database {
             // Update prepared statements
             db.mUsersUpdateOne = db.mConnection.prepareStatement("UPDATE Users SET money = ? WHERE uid = ?");
             db.mTeamsUpdateOne = db.mConnection.prepareStatement("UPDATE Teams SET price = ?, wins = ?, losses = ?, pointsfor = ?, pointsagainst = ?, lastprice = ? WHERE tid = ?");
-            db.mOwnershipsUpdateOne = db.mConnection.prepareStatement("UPDATE Ownerships SET count = ?, WHERE uid = ? AND tid = ?");
+            db.mOwnershipsUpdateOne = db.mConnection.prepareStatement("UPDATE Ownerships SET count = ? WHERE uid = ? AND tid = ?");
             
             // Select all prepared statements
             db.mUsersSelectAll = db.mConnection.prepareStatement("SELECT * FROM Users ORDER BY money");
@@ -253,9 +253,8 @@ public class Database {
                 System.out.println("Failed to update user");
                 return -1;
             }
-            addOwnerships(uid, tid, amount);
+            return addOwnerships(uid, tid, amount);
         }
-        return amount;
     }
 
     int addOwnerships(int uid, int tid, int amount) {
@@ -359,6 +358,19 @@ public class Database {
         return 0;
     }
 
+    String getTeamName(int tid) {
+        try {
+            mGetTeam.setInt(1, tid);
+            ResultSet rs = mGetTeam.executeQuery();
+            if (rs.next()) {
+                return rs.getString("name");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return "null";
+    }
+
     /**
      * Insert a row into the Teams table
      * 
@@ -451,7 +463,7 @@ public class Database {
                 int uid = rs.getInt("uid");
                 int money = rs.getInt("money");
                 int networth = getUserStockValue(uid) + money;
-                res.add(new UserRow(uid, rs.getString("username"), networth, money, new ArrayList<OwnershipsRow>()));
+                res.add(new UserRow(uid, rs.getString("username"), networth, money, new ArrayList<NamedOwnership>()));
             }
             rs.close();
             return res;
@@ -505,14 +517,15 @@ public class Database {
         return -1;
     }
 
-    ArrayList<OwnershipsRow> getUserOwnerships(int uid) {
-        ArrayList<OwnershipsRow> res = new ArrayList<OwnershipsRow>();
+    ArrayList<NamedOwnership> getUserOwnerships(int uid) {
+        ArrayList<NamedOwnership> res = new ArrayList<NamedOwnership>();
         try {
             mGetOwnerships.setInt(1, uid);
             ResultSet rs = mGetOwnerships.executeQuery();
             while (rs.next()) {
-                res.add(new OwnershipsRow(uid, rs.getInt("tid"), 
-                rs.getInt("count")));
+                int tid = rs.getInt("tid");
+                res.add(new NamedOwnership(uid, tid, 
+                rs.getInt("count"), getTeamName(tid)));
             }
             rs.close();
             return res;
@@ -641,16 +654,16 @@ public class Database {
      * @return The number of rows that were updated. -1 indicates an error.
      */
     int ownershipsUpdateOne(int uid, int tid, int count) {
-        int res = -1;
         try {
-            mOwnershipsUpdateOne.setInt(1, uid);
-            mOwnershipsUpdateOne.setInt(2, tid);
-            mOwnershipsUpdateOne.setInt(3, count);
-            res = mOwnershipsUpdateOne.executeUpdate();
+            mOwnershipsUpdateOne.setInt(1, count);
+            mOwnershipsUpdateOne.setInt(2, uid);
+            mOwnershipsUpdateOne.setInt(3, tid);
+            mOwnershipsUpdateOne.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
+            return -1;
         }
-        return res;
+        return count;
     }
 
     /**

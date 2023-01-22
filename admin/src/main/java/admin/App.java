@@ -68,6 +68,15 @@ public class App {
         System.out.println("  [?] Help (this message)");
     }
 
+    static void configMenu() {
+        System.out.println("Config Menu");
+        System.out.println("  [-] Delete a row");
+        System.out.println("  [+] Insert a new row");
+        System.out.println("  [~] Update a row");
+        System.out.println("  [q] Quit Program");
+        System.out.println("  [?] Help (this message)");
+    }
+
     /**
      * Ask the user to enter a menu option; repeat until we get a valid option
      * 
@@ -250,6 +259,31 @@ public class App {
         }
     }
 
+    static void configTable(Database db, BufferedReader in) {
+        while (true) {
+            char action = prompt(in, "1q-+~?");
+            if (action == '?') {
+                ownershipsMenu();
+            } else if (action == 'q') {
+                break;
+            } else if (action == '-') {
+                int cid = getInt(in, "Enter the config ID");
+                boolean res = db.configDeleteOne(cid);
+                System.out.println("  " + res + " rows deleted");
+            } else if (action == '+') {
+                int cid = getInt(in, "Enter the config ID");
+                long val = getLong(in, "Enter the val");
+                boolean res = db.configInsertOne(cid, val);
+                System.out.println("  " + res + " rows added");
+            } else if (action == '~') {
+                int cid = getInt(in, "Enter the config ID");
+                long val = getLong(in, "Enter the val");
+                boolean res = db.configUpdateOne(cid, val);
+                System.out.println("  " + res + " rows updated");
+            }
+        }
+    }
+
     /**
      * Ask the user to enter a String message
      * 
@@ -291,6 +325,19 @@ public class App {
         return i;
     }
 
+    static long getLong(BufferedReader in, String message) {
+        long i = -1;
+        try {
+            System.out.print(message + " :> ");
+            i = Long.parseLong(in.readLine());
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (NumberFormatException e) {
+            e.printStackTrace();
+        }
+        return i;
+    }
+
     /**
      * The main routine runs a loop that gets a request from the user and
      * processes it
@@ -319,7 +366,7 @@ public class App {
         
         // Loop trough the menu selection
         while (true) {
-            char tableAction = prompt(in, "+-UOTAq?");
+            char tableAction = prompt(in, "+-UOTACq?");
             if (tableAction == 'q') {
                 break;
             } else if (tableAction == '?') {
@@ -340,6 +387,8 @@ public class App {
                 statCollector = new StatCollector(db, leagueID, lastMatchID, apiKey);
                 int gamesRead = statCollector.update();
                 System.out.println("Successfully? processed "+gamesRead+" games");
+            } else if (tableAction == 'C') {
+                configTable(db, in);
             } else {
                 continue;
             }

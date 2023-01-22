@@ -21,87 +21,16 @@ public class Database {
      */
     private Connection mConnection;
 
-    /**
-     * A prepared statement for getting all data in the Users table
+/*
+     * What follows is a large amount of PreparedStatements that are used
+     * to query the database. It saves a lot of lines to just compact it :)
      */
-    private PreparedStatement mUsersSelectAll;
-
-    /**
-     * A prepared statement for getting all data in the Comments table
-     */
-    private PreparedStatement mOwnershipsSelectAll;
-
-    /**
-     * A prepared statement for getting all data in the Mlikes table
-     */
-    private PreparedStatement mTeamsSelectAll;
-
-    /**
-     * A prepared statement for deleting a row from the Users table
-     */
-    private PreparedStatement mUsersDeleteOne;
-
-    /**
-     * A prepared statement for deleting a row from the Comments table
-     */
-    private PreparedStatement mOwnershipsDeleteOne;
-
-    /**
-     * A prepared statement for deleting a row from the Mlikes table
-     */
-    private PreparedStatement mTeamsDeleteOne;
-
-    /**
-     * A prepared statement for inserting a row into the Users table
-     */
-    private PreparedStatement mUsersInsertOne;
-
-    /**
-     * A prepared statement for inserting a row into the Comments table
-     */
-    private PreparedStatement mOwnershipsInsertOne;
-
-    /**
-     * A prepared statement for inserting a row into the Mlikes table
-     */
-    private PreparedStatement mTeamsInsertOne;
-
-    /**
-     * A prepared statement for updating a row into the Users table
-     */
-    private PreparedStatement mUsersUpdateOne;
-
-    /**
-     * A prepared statement for updating a row into the Comments table
-     */
-    private PreparedStatement mOwnershipsUpdateOne;
-
-    /**
-     * A prepared statement for updating a row into the Mlikes table
-     */
-    private PreparedStatement mTeamsUpdateOne;
-
-    /**
-     * A prepared statement for creating the table in our database
-     */
-    private PreparedStatement mCreateUsers;
-
-    /**
-     * A prepared statement for creating the table in our database
-     */
-    private PreparedStatement mCreateTeams;    
-
-    /**
-     * A prepared statement for creating the table in our database
-     */
-    private PreparedStatement mCreateOwnerships;
-
-    /**
-     * A prepared statement for dropping the table in our database
-     */
-    private PreparedStatement mDropTables;
-
-    private PreparedStatement mGetTeam;
+    private PreparedStatement mUsersSelectAll, mOwnershipsSelectAll, mTeamsSelectAll, mUsersDeleteOne, 
+                    mOwnershipsDeleteOne, mTeamsDeleteOne, mUsersInsertOne, mOwnershipsInsertOne,
+                    mTeamsInsertOne, mUsersUpdateOne, mOwnershipsUpdateOne, mTeamsUpdateOne, mCreateUsers,
+                    mCreateTeams, mCreateOwnerships, mDropTables, mGetOwnerships, mGetTeam, mGetUser,
+                    mGetUserOwnership, mGetUserID, mCreateConfig, mAddConfig, mUpdateConfig, mDeleteConfig,
+                    mGetConfig;
 
     /**
      * The Database constructor is private: we only create Database objects 
@@ -164,6 +93,7 @@ public class Database {
             "price INTEGER NOT NULL, wins INTEGER NOT NULL, losses INTEGER NOT NULL, pointsfor INTEGER NOT NULL, pointsagainst INTEGER NOT NULL, lastprice INTEGER NOT NULL)");
             //TODO make the ids foreign keys
             db.mCreateOwnerships = db.mConnection.prepareStatement("CREATE TABLE IF NOT EXISTS Ownerships( uid INTEGER NOT NULL, tid INTEGER NOT NULL, count INTEGER NOT NULL)");
+            db.mCreateConfig = db.mConnection.prepareStatement("CREATE TABLE IF NOT EXISTS Config ( cid SERIAL PRIMARY KEY, val bigint NOT NULL )");
 
             // Delete prepared statements
             db.mUsersDeleteOne = db.mConnection.prepareStatement("DELETE FROM Users WHERE uid = ?");
@@ -185,15 +115,19 @@ public class Database {
             db.mTeamsSelectAll = db.mConnection.prepareStatement("SELECT * FROM Teams ORDER BY price");
             db.mOwnershipsSelectAll = db.mConnection.prepareStatement("SELECT * FROM Ownerships ORDER BY uid");
 
+            db.mGetOwnerships = db.mConnection.prepareStatement("SELECT * FROM Ownerships WHERE uid = ?");
             db.mGetTeam = db.mConnection.prepareStatement("SELECT * FROM Teams WHERE tid=?");
+            db.mGetUser = db.mConnection.prepareStatement("SELECT * FROM Users WHERE uid=?");
+
+            db.mGetUserOwnership = db.mConnection.prepareStatement("SELECT * FROM Ownerships WHERE uid = ? AND tid = ?");
+            db.mGetUserID = db.mConnection.prepareStatement("SELECT * FROM Users WHERE username = ?");
+
+            // Config stuff
+            db.mAddConfig = db.mConnection.prepareStatement("INSERT INTO Config (cid, val) VALUES (?, ?)");
+            db.mUpdateConfig = db.mConnection.prepareStatement("UPDATE Config SET val=? WHERE cid=?");
+            db.mDeleteConfig = db.mConnection.prepareStatement("DELETE FROM Config WHERE cid=?");
+            db.mGetConfig = db.mConnection.prepareStatement("SELECT * FROM Config WHERE cid=?");
             
-            // Might just not use these and only use select all
-            /*  Select one prepared statements
-            db.mMessageSelectOne = db.mConnection.prepareStatement("SELECT * from Messages WHERE mid = ?");
-            db.mUsersSelectOne = db.mConnection.prepareStatement("SELECT * FROM Users WHERE uid = ?");
-            db.mCommentSelectOne = db.mConnection.prepareStatement("SELECT * FROM Comments WHERE cid = ?");
-            db.mLikeSelectOne = db.mConnection.prepareStatement("SELECT * FROM Mlikes WHERE mid = ? AND uid = ?");
-            */
         
         } catch (SQLException e) {
             System.err.println("Error creating prepared statement");
@@ -474,6 +408,55 @@ public class Database {
         return res;
     }
 
+    boolean configUpdateOne(int cid, long val) {
+        try {
+            mUpdateConfig.setLong(1, val);
+            mUpdateConfig.setInt(2, cid);
+            mUpdateConfig.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+
+    boolean configInsertOne(int cid, long val) {
+        try {
+            mAddConfig.setLong(1, val);
+            mAddConfig.setInt(2, cid);
+            
+            mAddConfig.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+
+    long getConfig(int cid) {
+        try {
+            mGetConfig.setInt(1, cid);
+            ResultSet rs = mGetConfig.executeQuery();
+            if (rs.next()) {
+                return rs.getLong("val");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
+
+    boolean configDeleteOne(int cid) {
+        try {
+            mDeleteConfig.setInt(1, cid);
+            mDeleteConfig.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+
     /**
      * Create a new table in the database. Prints an error if the statement doesn't work.
      * NOTE: as of now this just adds all the table I think I need to the database :)
@@ -490,6 +473,9 @@ public class Database {
             }
             if (mCreateOwnerships.execute()) {
                 System.out.println("Couldn't add Ownerships to DB");
+            }
+            if (mCreateConfig.execute()) {
+                System.out.println("Couldn't add Config to DB?");
             }
             return true;
         } catch (SQLException e) {

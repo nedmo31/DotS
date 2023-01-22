@@ -1,6 +1,5 @@
 package backend;
 
-
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.sql.Connection;
@@ -12,105 +11,26 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 
 /**
- * This class represents the postgres database running on Heroku.
+ * This class represents the postgres database running on ElephantSQL
  * It uses prepared statements to query the database
  */
 public class Database {
+
     /**
      * The connection to the database.  When there is no connection, it should
      * be null.  Otherwise, there is a valid open connection
      */
     private Connection mConnection;
 
-    /**
-     * A prepared statement for getting all data in the Users table
+    /*
+     * What follows is a large amount of PreparedStatements that are used
+     * to query the database. It saves a lot of lines to just compact it :)
      */
-    private PreparedStatement mUsersSelectAll;
-
-    /**
-     * A prepared statement for getting all data in the Comments table
-     */
-    private PreparedStatement mOwnershipsSelectAll;
-
-    /**
-     * A prepared statement for getting all data in the Mlikes table
-     */
-    private PreparedStatement mTeamsSelectAll;
-
-    /**
-     * A prepared statement for deleting a row from the Users table
-     */
-    private PreparedStatement mUsersDeleteOne;
-
-    /**
-     * A prepared statement for deleting a row from the Comments table
-     */
-    private PreparedStatement mOwnershipsDeleteOne;
-
-    /**
-     * A prepared statement for deleting a row from the Mlikes table
-     */
-    private PreparedStatement mTeamsDeleteOne;
-
-    /**
-     * A prepared statement for inserting a row into the Users table
-     */
-    private PreparedStatement mUsersInsertOne;
-
-    /**
-     * A prepared statement for inserting a row into the Comments table
-     */
-    private PreparedStatement mOwnershipsInsertOne;
-
-    /**
-     * A prepared statement for inserting a row into the Mlikes table
-     */
-    private PreparedStatement mTeamsInsertOne;
-
-    /**
-     * A prepared statement for updating a row into the Users table
-     */
-    private PreparedStatement mUsersUpdateOne;
-
-    /**
-     * A prepared statement for updating a row into the Comments table
-     */
-    private PreparedStatement mOwnershipsUpdateOne;
-
-    /**
-     * A prepared statement for updating a row into the Mlikes table
-     */
-    private PreparedStatement mTeamsUpdateOne;
-
-    /**
-     * A prepared statement for creating the table in our database
-     */
-    private PreparedStatement mCreateUsers;
-
-    /**
-     * A prepared statement for creating the table in our database
-     */
-    private PreparedStatement mCreateTeams;    
-
-    /**
-     * A prepared statement for creating the table in our database
-     */
-    private PreparedStatement mCreateOwnerships;
-
-    /**
-     * A prepared statement for dropping the table in our database
-     */
-    private PreparedStatement mDropTables;
-
-    private PreparedStatement mGetOwnerships;
-
-    private PreparedStatement mGetTeam;
-    
-    private PreparedStatement mGetUser;
-
-    private PreparedStatement mGetUserOwnership;
-
-    private PreparedStatement mGetUserID;
+    private PreparedStatement mUsersSelectAll, mOwnershipsSelectAll, mTeamsSelectAll, mUsersDeleteOne, 
+                    mOwnershipsDeleteOne, mTeamsDeleteOne, mUsersInsertOne, mOwnershipsInsertOne,
+                    mTeamsInsertOne, mUsersUpdateOne, mOwnershipsUpdateOne, mTeamsUpdateOne, mCreateUsers,
+                    mCreateTeams, mCreateOwnerships, mDropTables, mGetOwnerships, mGetTeam, mGetUser,
+                    mGetUserOwnership, mGetUserID, mTeamsUpdateOneNPC, mGetConfig, mUpdateConfig;
 
     /**
      * The Database constructor is private: we only create Database objects 
@@ -158,11 +78,8 @@ public class Database {
         // Attempt to create all of our prepared statements.  If any of these 
         // fail, the whole getDatabase() call should fail
         try {
-            // NB: we can easily get ourselves in trouble here by typing the
-            //     SQL incorrectly.  We really should have things like "Messages"
-            //     as constants, and then build the strings for the statements
-            //     from those constants.
-
+            // Here we initialize all of our PreparedStatment objects so that they are easy 
+            // to use in the methods of the database
             db.mCreateUsers = db.mConnection.prepareStatement(
                     "CREATE TABLE IF NOT EXISTS Users( uid SERIAL PRIMARY KEY, username VARCHAR(20) " + 
                     "UNIQUE NOT NULL, password VARCHAR(25) NOT NULL, money INTEGER NOT NULL)");
@@ -185,6 +102,7 @@ public class Database {
             // Update prepared statements
             db.mUsersUpdateOne = db.mConnection.prepareStatement("UPDATE Users SET money = ? WHERE uid = ?");
             db.mTeamsUpdateOne = db.mConnection.prepareStatement("UPDATE Teams SET price = ?, wins = ?, losses = ?, pointsfor = ?, pointsagainst = ?, lastprice = ? WHERE tid = ?");
+            db.mTeamsUpdateOneNPC = db.mConnection.prepareStatement("UPDATE Teams SET price = ?, wins = ?, losses = ?, pointsfor = ?, pointsagainst = ? WHERE tid = ?");
             db.mOwnershipsUpdateOne = db.mConnection.prepareStatement("UPDATE Ownerships SET count = ? WHERE uid = ? AND tid = ?");
             
             // Select all prepared statements
@@ -199,14 +117,9 @@ public class Database {
             db.mGetUserOwnership = db.mConnection.prepareStatement("SELECT * FROM Ownerships WHERE uid = ? AND tid = ?");
             db.mGetUserID = db.mConnection.prepareStatement("SELECT * FROM Users WHERE username = ?");
 
-            
-            // Might just not use these and only use select all
-            /*  Select one prepared statements
-            db.mMessageSelectOne = db.mConnection.prepareStatement("SELECT * from Messages WHERE mid = ?");
-            db.mUsersSelectOne = db.mConnection.prepareStatement("SELECT * FROM Users WHERE uid = ?");
-            db.mCommentSelectOne = db.mConnection.prepareStatement("SELECT * FROM Comments WHERE cid = ?");
-            db.mLikeSelectOne = db.mConnection.prepareStatement("SELECT * FROM Mlikes WHERE mid = ? AND uid = ?");
-            */
+            db.mGetConfig = db.mConnection.prepareStatement("SELECT * FROM Config WHERE cid=?");
+            db.mUpdateConfig = db.mConnection.prepareStatement("UPDATE Config SET val=? WHERE cid=?");
+
         
         } catch (SQLException e) {
             System.err.println("Error creating prepared statement");
@@ -574,6 +487,21 @@ public class Database {
         return res;
     }
 
+    TeamRow getTeam(int tid) {
+        try {
+            mGetTeam.setInt(1, tid);
+            ResultSet rs = mGetTeam.executeQuery();
+            if (rs.next()) {
+                return new TeamRow(rs.getInt("tid"),rs.getString("name"), rs.getInt("price")
+                                , rs.getInt("wins"), rs.getInt("losses"), rs.getInt("pointsfor"),
+                                rs.getInt("pointsagainst"), rs.getInt("lastprice"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     /**
      * Delete a row in the Teams table by cid
      * 
@@ -648,6 +576,22 @@ public class Database {
         return res;
     }
 
+    int teamsUpdateOneNoLastPriceChange(int tid, int price, int wins, int losses, int pointsfor, int pointsagainst) {
+        int res = -1;
+        try {
+            mTeamsUpdateOneNPC.setInt(1, price);
+            mTeamsUpdateOneNPC.setInt(2, wins);
+            mTeamsUpdateOneNPC.setInt(3, losses);
+            mTeamsUpdateOneNPC.setInt(4, pointsfor);
+            mTeamsUpdateOneNPC.setInt(5, pointsagainst);
+            mTeamsUpdateOneNPC.setInt(6, tid);
+            res = mTeamsUpdateOneNPC.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return res;
+    }
+
     /**
      * Update the content for a row in the Ownerships table
      * 
@@ -664,6 +608,31 @@ public class Database {
             return -1;
         }
         return count;
+    }
+
+    long getConfig(int cid) {
+        try {
+            mGetConfig.setInt(1, cid);
+            ResultSet rs = mGetConfig.executeQuery();
+            if (rs.next()) {
+                return rs.getLong("val");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
+
+    boolean configUpdateOne(int cid, long val) {
+        try {
+            mUpdateConfig.setInt(2, cid);
+            mUpdateConfig.setLong(1, val);
+            mUpdateConfig.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
     }
 
     /**

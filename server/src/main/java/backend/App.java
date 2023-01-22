@@ -1,17 +1,13 @@
 package backend;
 
-// Import the Spark package, so that we can make use of the "get" function to 
-// create an HTTP GET route
 import spark.Spark;
 
-import java.util.HashMap;
 import java.util.Map;
 
-// Import Google's JSON library
 import com.google.gson.*;
 
 /**
- * For now, our app creates an HTTP server that can only get and add data and add/remove likes.
+ * Our app creates an HTTP server to handle requests.
  */
 public class App {
 
@@ -26,7 +22,7 @@ public class App {
         // into JSON.
         final Gson gson = new Gson();
 
-        // get the Postgres configuration from the environment
+        // get the database url from the environment so it's hidden
         Map<String, String> env = System.getenv();
         String db_url = env.get("DATABASE_URL");
 
@@ -47,6 +43,7 @@ public class App {
             Spark.staticFiles.externalLocation(static_location_override);
         }
 
+        // get the port and setting for CORS from the environment
         Spark.port(getIntFromEnv("PORT", 4567));
         String cors_enabled = env.get("CORS_ENABLED");
 
@@ -65,24 +62,19 @@ public class App {
             return "";
         });
 
-        // GET route that returns all message titles and Ids.  All we do is get 
-        // the data, embed it in a StructuredResponse, turn it into JSON, and 
-        // return it.  If there's no data, we return "[]", so there's no need 
-        // for error handling.
+        // GET route that returns a list of all the users in the database
+        // See the route list for the format of the response
         Spark.get("/users", (request, response) -> {
             // ensure status 200 OK, with a MIME type of JSON
             response.status(200);
             response.type("application/json");
 
+            // uses gson object to send the data as JSON to front 
             return gson.toJson(new StructuredResponse("ok", null, db.usersSelectAll()));
         });
 
-        // GET route that returns everything for a single row in the DataStore.
-        // The ":id" suffix in the first parameter to get() becomes 
-        // request.params("id"), so that we can get the requested row ID.  If 
-        // ":id" isn't a number, Spark will reply with a status 500 Internal
-        // Server Error.  Otherwise, we have an integer, and the only possible 
-        // error is that it doesn't correspond to a row with data.
+        // GET route that returns a single user and a list of the 
+        // teams that they own
         Spark.get("/users/:id", (request, response) -> {
             int idx = Integer.parseInt(request.params("id"));
             // ensure status 200 OK, with a MIME type of JSON
@@ -97,6 +89,7 @@ public class App {
             }
         });
 
+        // GET route that returns a list of all the teams
         Spark.get("/teams", (request, response) -> {
             response.status(200);
             response.type("application/json");
@@ -104,11 +97,12 @@ public class App {
             return gson.toJson(new StructuredResponse("ok", null, db.teamsSelectAll()));
         });
 
-        // Route to login 
+        // POST route to login. Returns the user id of the new user
         Spark.post("/login", (request, response) -> {
             response.status(200);
             response.type("application/json");
 
+            // Gets the json data sent with the post 
             LoginRequest req = gson.fromJson(request.body(), LoginRequest.class);
 
             int uid = db.signupOrLogin(req.username, req.password);
@@ -128,6 +122,7 @@ public class App {
             response.status(200);
             response.type("application/json");
 
+            // gets the json data sent with the post
             TradeRequest req = gson.fromJson(request.body(), TradeRequest.class);
 
             int res;
@@ -143,6 +138,24 @@ public class App {
             return gson.toJson(new StructuredResponse("ok", null, res));
 
         });
+
+        long sleepTime = 1000; // this is 8 hours, sort of a default wait time
+        String apiKey = env.get("API_KEY");
+
+        // We want to update the results somewhat regularly
+        while(true) {
+            
+            sleepTime = db.getConfig(2); // see if the sleeptime has changed
+            StatCollector sc = new StatCollector(db, (int)db.getConfig(3), db.getConfig(1), apiKey);
+            System.out.println(sc.update()+" games read");
+
+            try {
+                Thread.sleep(sleepTime);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            
+        }
 
     }
 
@@ -195,13 +208,4 @@ public class App {
         }
         return defaultVal;
     }
-
-    static void removePastLogin(HashMap<Integer, Integer> hm, int userID) {
-        for (Integer i : hm.keySet()) {
-            if (hm.get(i) == userID) {
-                hm.remove(i);
-            }
-        }
-    }
-
 }

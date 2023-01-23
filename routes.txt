@@ -1,12 +1,25 @@
 Transactions : 
-    POST    /trade     send JSON : {uid, isBuy, tid, amount}    e.g. {1, true, 2, 4}  user 1 buys 4 shares of team 2
+    POST    /trade     send JSON : {uid, isBuy, tid, amount}    e.g. {1, true, 2123, 4}  user 1 buys 4 shares of team 2123
 
     POST    /login    send JSON : {username, password}         returns JSON {uid}
+            this route also registers users if the username didn't exist before. -2 means incorrect password, -1 means some other error
 
 
 Data Pull : 
-    GET     /users          returns JSON {[{uid, username, networth, money, []}, ...]} returns of a list of users with their name and net worth
+    GET     /users          returns JSON {[{uid, username, networth, money, [], []}, ...]} 
+                                a list of all users. ownerships and transactions will be empty arrays
 
-    GET     /users/:uid     returns JSON {uid, username, networth, money, ownerships:[{uid, tid, count, name}, ...]} returns a user and their list of stocks
+    GET     /users/:uid     returns JSON {uid, username, networth, money, ownerships:[{uid, tid, count, name}, ...], transactions:[{uid, tid, price, change}...]} 
+                                a user, their list of stocks, their list of past transactions
 
-    GET     /teams          returns JSON { [ {tid, name, price, wins, losses, pointsfor, pointsagainst}, ...] }
+    GET     /teams          returns JSON { [ {tid, name, price, wins, losses, pointsfor, pointsagainst, history:[{tid, date, price}...]}, ...] }
+                                all teams, and their history of prices
+
+
+
+objects
+User {uid, username, networth, money, ownerships, transactions}
+Team {tid, name, price, wins, losses, pointsfor, pointsagainst, history}
+Ownership {uid, tid, count, name}
+History {tid, date, price}
+Transaction {uid, tid, price, change}  // change of 3 would be 3 purchased. change of -2 would be two sold

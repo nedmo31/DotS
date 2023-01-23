@@ -2,18 +2,18 @@ package admin;
 
 public class TeamRow {
 
-    public final int tid, price, wins, losses, pointsfor, pointsagainst, lastprice;
+    public final int tid, price, wins, losses, pointsfor, pointsagainst;
 
     public final String name;
 
     public final static int BASE_VALUE = 50;
     public final static double RECENCY_WEIGHT = .7;
 
-    TeamRow(int tid, String name, int price, int wins, int losses, int pointsfor, int pointsagainst, int lastprice) {
+    TeamRow(int tid, String name, int price, int wins, int losses, int pointsfor, int pointsagainst) {
         this.tid = tid; this.price = price; this.wins = wins;
         this.losses = losses; this.pointsfor = pointsfor; 
         this.pointsagainst = pointsagainst;
-        this.name = name; this.lastprice = lastprice;
+        this.name = name;
     }
 
     /**

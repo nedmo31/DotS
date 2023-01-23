@@ -59,12 +59,11 @@ public class StatCollector {
             if (!processGameResult(i)) {
                 System.out.println("Error on game "+ i.matchID);
             }
-        }
-        // TODO update the last price           
-
+        }       
         return matches.size();
     }
 
+    @SuppressWarnings("unused") // maybe it is dead code but I'm pretty sure it isn't. Got tired of the warning
     public ArrayList<GameToProcess> getLeagueMatches(Database db, String link, long lastMatchID) throws Exception {
         ArrayList<GameToProcess> matches = new ArrayList<>();
         ArrayList<Integer> teams = getTeamsInDB(db);
@@ -104,7 +103,6 @@ public class StatCollector {
                 radTeam = direTeam = false;
             }
             if (line == null && matchesRemaining > 0) {
-                System.out.println("Dead code?");
                 url = new URL(link+"&start_at_match_id="+(matchID-1)); 
                 urlConnection = url.openConnection();  
                 bufferedReader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream())); 
@@ -173,6 +171,7 @@ public class StatCollector {
             int newPrice = radiantTeam.getNewPrice(radiantWin, radiantScore, direScore);
             int newWins = radiantWin ? radiantTeam.wins + 1 : radiantTeam.wins;
             int newLosses = radiantWin ? radiantTeam.losses : radiantTeam.losses + 1;
+            db.TeamHistoryInsert(radiantTeam.tid, new java.sql.Date(new java.util.Date().getTime()), newPrice);
             db.teamsUpdateOne(radiantTeam.tid, newPrice, newWins, newLosses, radiantTeam.pointsfor + radiantScore,
                                  radiantTeam.pointsagainst + direScore);
         }
@@ -182,6 +181,7 @@ public class StatCollector {
             int newPrice = direTeam.getNewPrice(!radiantWin, direScore, radiantScore);
             int newWins = radiantWin ? direTeam.wins : direTeam.wins + 1;
             int newLosses = radiantWin ? direTeam.losses + 1 : direTeam.losses;
+            db.TeamHistoryInsert(direTeam.tid, new java.sql.Date(new java.util.Date().getTime()), newPrice);
             db.teamsUpdateOne(direTeam.tid, newPrice, newWins, newLosses, direTeam.pointsfor + direScore,
                                  direTeam.pointsagainst + radiantScore);
         }

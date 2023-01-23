@@ -3,6 +3,7 @@ package backend;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -30,7 +31,10 @@ public class Database {
                     mOwnershipsDeleteOne, mTeamsDeleteOne, mUsersInsertOne, mOwnershipsInsertOne,
                     mTeamsInsertOne, mUsersUpdateOne, mOwnershipsUpdateOne, mTeamsUpdateOne, mCreateUsers,
                     mCreateTeams, mCreateOwnerships, mDropTables, mGetOwnerships, mGetTeam, mGetUser,
-                    mGetUserOwnership, mGetUserID, mTeamsUpdateOneNPC, mGetConfig, mUpdateConfig;
+                    mGetUserOwnership, mGetUserID, mGetConfig, mUpdateConfig;
+
+    private PreparedStatement mTransactionsInsert, mTransactionsSelectOne,  mTeamHistoryInsert, mTeamHistoryUpdate, 
+                    mTeamHistorySelectOne, mCreateConfig, mCreateTransactions, mCreateTeamHistory;
 
     /**
      * The Database constructor is private: we only create Database objects 
@@ -82,12 +86,15 @@ public class Database {
             // to use in the methods of the database
             db.mCreateUsers = db.mConnection.prepareStatement(
                     "CREATE TABLE IF NOT EXISTS Users( uid SERIAL PRIMARY KEY, username VARCHAR(20) " + 
-                    "UNIQUE NOT NULL, password VARCHAR(25) NOT NULL, money INTEGER NOT NULL)");
+                    "UNIQUE NOT NULL, password INTEGER NOT NULL, money INTEGER NOT NULL)");
             db.mDropTables = db.mConnection.prepareStatement("DROP TABLE ?");
             db.mCreateTeams = db.mConnection.prepareStatement("CREATE TABLE IF NOT EXISTS Teams( tid SERIAL PRIMARY KEY, name VARCHAR(30), " + 
-            "price INTEGER NOT NULL, wins INTEGER NOT NULL, losses INTEGER NOT NULL, pointsfor INTEGER NOT NULL, pointsagainst INTEGER NOT NULL, lastprice INTEGER NOT NULL)");
+            "price INTEGER NOT NULL, wins INTEGER NOT NULL, losses INTEGER NOT NULL, pointsfor INTEGER NOT NULL, pointsagainst INTEGER NOT NULL)");
             //TODO make the ids foreign keys
             db.mCreateOwnerships = db.mConnection.prepareStatement("CREATE TABLE IF NOT EXISTS Ownerships( uid INTEGER NOT NULL, tid INTEGER NOT NULL, count INTEGER NOT NULL)");
+            db.mCreateConfig = db.mConnection.prepareStatement("CREATE TABLE IF NOT EXISTS Config ( cid SERIAL PRIMARY KEY, val bigint NOT NULL )");
+            db.mCreateTeamHistory = db.mConnection.prepareStatement("CREATE TABLE IF NOT EXISTS TeamHistory ( tid INTEGER NOT NULL, date DATE, price INTEGER NOT NULL )");
+            db.mCreateTransactions = db.mConnection.prepareStatement("CREATE TABLE IF NOT EXISTS Transactions ( uid INTEGER NOT NULL, tid INTEGER NOT NULL, change INTEGER NOT NULL, price INTEGER NOT NULL )");
 
             // Delete prepared statements
             db.mUsersDeleteOne = db.mConnection.prepareStatement("DELETE FROM Users WHERE uid = ?");
@@ -96,13 +103,12 @@ public class Database {
             
             // Insert prepared statements
             db.mUsersInsertOne = db.mConnection.prepareStatement("INSERT INTO Users (uid, username, password, money) VALUES (default, ?, ?, 200)");
-            db.mTeamsInsertOne = db.mConnection.prepareStatement("INSERT INTO Teams (tid, name, price, wins, losses, pointsfor, pointsagainst, lastprice) VALUES (?, ?, ?, ?, ?, ?, ?, 0)");
+            db.mTeamsInsertOne = db.mConnection.prepareStatement("INSERT INTO Teams (tid, name, price, wins, losses, pointsfor, pointsagainst) VALUES (?, ?, ?, ?, ?, ?, ?)");
             db.mOwnershipsInsertOne = db.mConnection.prepareStatement("INSERT INTO Ownerships (uid, tid, count) VALUES (?, ?, ?)");
 
             // Update prepared statements
             db.mUsersUpdateOne = db.mConnection.prepareStatement("UPDATE Users SET money = ? WHERE uid = ?");
-            db.mTeamsUpdateOne = db.mConnection.prepareStatement("UPDATE Teams SET price = ?, wins = ?, losses = ?, pointsfor = ?, pointsagainst = ?, lastprice = ? WHERE tid = ?");
-            db.mTeamsUpdateOneNPC = db.mConnection.prepareStatement("UPDATE Teams SET price = ?, wins = ?, losses = ?, pointsfor = ?, pointsagainst = ? WHERE tid = ?");
+            db.mTeamsUpdateOne = db.mConnection.prepareStatement("UPDATE Teams SET price = ?, wins = ?, losses = ?, pointsfor = ?, pointsagainst = ? WHERE tid = ?");
             db.mOwnershipsUpdateOne = db.mConnection.prepareStatement("UPDATE Ownerships SET count = ? WHERE uid = ? AND tid = ?");
             
             // Select all prepared statements
@@ -120,6 +126,14 @@ public class Database {
             db.mGetConfig = db.mConnection.prepareStatement("SELECT * FROM Config WHERE cid=?");
             db.mUpdateConfig = db.mConnection.prepareStatement("UPDATE Config SET val=? WHERE cid=?");
 
+            // TeamHistory
+            db.mTeamHistoryInsert = db.mConnection.prepareStatement("INSERT INTO TeamHistory (tid, date, price) VALUES (?, ?, ?)");
+            db.mTeamHistoryUpdate = db.mConnection.prepareStatement("UPDATE TeamHistory SET price=? WHERE tid=? AND date=?");
+            db.mTeamHistorySelectOne = db.mConnection.prepareStatement("SELECT * FROM TeamHistory WHERE tid=?");
+
+            //Transactions
+            db.mTransactionsInsert = db.mConnection.prepareStatement("INSERT INTO Transactions (uid, tid, change, price) VALUES (?, ?, ?, ?)");
+            db.mTransactionsSelectOne = db.mConnection.prepareStatement("SELECT * FROM Transactions WHERE uid=?");
         
         } catch (SQLException e) {
             System.err.println("Error creating prepared statement");
@@ -157,7 +171,8 @@ public class Database {
 
     int userPurchase(int uid, int tid, int amount) {
         int spendable = getUser(uid).money;
-        int cost = getTeamPrice(tid) * amount;
+        int price = getTeamPrice(tid);
+        int cost = price * amount;
         if (spendable < cost) {
             return 0;
         } 
@@ -166,6 +181,9 @@ public class Database {
                 System.out.println("Failed to update user");
                 return -1;
             }
+            // update transactions table
+            TransactionsInsert(uid, tid, amount, price);
+
             return addOwnerships(uid, tid, amount);
         }
     }
@@ -194,17 +212,22 @@ public class Database {
     int userSell(int uid, int tid, int amount) {
         int owned = getUserOwnership(uid, tid);
         int gained = 0;
+        int price = getTeamPrice(tid);
         if (amount >= owned) {
+            amount = owned;
             ownershipsDeleteRow(uid, tid);
-            gained = owned * getTeamPrice(tid);
+            gained = owned * price;
         } else {
             ownershipsUpdateOne(uid, tid, owned - amount);
-            gained = amount * getTeamPrice(tid);
+            gained = amount * price;
         }   
         if (usersUpdateOne(uid, gained + getUser(uid).money) == -1) {
             System.out.println("Failed to update user");
             return -1;
         }
+        // update transactions table
+        TransactionsInsert(uid, tid, -1 * amount, price);
+
         return gained;
     }
 
@@ -214,16 +237,16 @@ public class Database {
      * 
      * @return -2 for denied access. -1 for error. userID on success
      */
-    int signupOrLogin(String username, String password) {
+    int signupOrLogin(String username, int password) {
         String name = "";
-        String pass = "";
+        int pass = -1;
         int id = -1;
         try {
             mGetUserID.setString(1, username);
             ResultSet rs = mGetUserID.executeQuery();
             if (rs.next()) {
                 name = rs.getString("username");
-                pass = rs.getString("password");
+                pass = rs.getInt("password");
                 id = rs.getInt("uid");
             }
             // if username doesn't exist, make new user
@@ -233,7 +256,7 @@ public class Database {
             
             // else, check if the password is right
             } else {
-                if (!password.equals(pass)) {
+                if (password != pass) {
                     return -2;
                 } 
             }
@@ -311,11 +334,11 @@ public class Database {
      * 
      * @return The number of rows that were inserted
      */
-    int usersInsertRow(String username, String password) {
+    int usersInsertRow(String username, int password) {
         int count = 0;
         try {
             mUsersInsertOne.setString(1, username);
-            mUsersInsertOne.setString(2, password);
+            mUsersInsertOne.setInt(2, password);
             count += mUsersInsertOne.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -351,9 +374,11 @@ public class Database {
         try {
             ResultSet rs = mTeamsSelectAll.executeQuery();
             while (rs.next()) {
-                res.add(new TeamRow(rs.getInt("tid"), rs.getString("name"), rs.getInt("price"),
+                int tid = rs.getInt("tid");
+                ArrayList<TeamHistoryRow> history = TeamHistorySelectOne(tid);
+                res.add(new TeamRow(tid, rs.getString("name"), rs.getInt("price"),
                  rs.getInt("wins"), rs.getInt("losses"), rs.getInt("pointsfor"),
-                  rs.getInt("pointsagainst"), rs.getInt("lastprice")));
+                  rs.getInt("pointsagainst"), history));
             }
             rs.close();
             return res;
@@ -376,7 +401,7 @@ public class Database {
                 int uid = rs.getInt("uid");
                 int money = rs.getInt("money");
                 int networth = getUserStockValue(uid) + money;
-                res.add(new UserRow(uid, rs.getString("username"), networth, money, new ArrayList<NamedOwnership>()));
+                res.add(new UserRow(uid, rs.getString("username"), networth, money, new ArrayList<NamedOwnership>(), new ArrayList<TransactionsRow>()));
             }
             rs.close();
             return res;
@@ -393,7 +418,8 @@ public class Database {
             if (rs.next()) {
                 int money = rs.getInt("money");
                 int networth = getUserStockValue(uid) + money;
-                return new UserRow(uid, rs.getString("username"), networth, money, getUserOwnerships(uid));
+                ArrayList<TransactionsRow> transactions = TransactionsSelectOne(uid);
+                return new UserRow(uid, rs.getString("username"), networth, money, getUserOwnerships(uid), transactions);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -492,9 +518,10 @@ public class Database {
             mGetTeam.setInt(1, tid);
             ResultSet rs = mGetTeam.executeQuery();
             if (rs.next()) {
-                return new TeamRow(rs.getInt("tid"),rs.getString("name"), rs.getInt("price")
+                ArrayList<TeamHistoryRow> history = TeamHistorySelectOne(tid);
+                return new TeamRow(tid,rs.getString("name"), rs.getInt("price")
                                 , rs.getInt("wins"), rs.getInt("losses"), rs.getInt("pointsfor"),
-                                rs.getInt("pointsagainst"), rs.getInt("lastprice"));
+                                rs.getInt("pointsagainst"), history);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -559,7 +586,6 @@ public class Database {
      */
     int teamsUpdateOne(int tid, int price, int wins, int losses, int pointsfor, int pointsagainst) {
         int res = -1;
-        int oldprice = getTeamPrice(tid);
         try {
             //price = ?, wins = ?, losses = ?, pointsfor = ?, pointsagainst = ?, lastprice = ? WHERE tid = ?
             mTeamsUpdateOne.setInt(1, price);
@@ -567,25 +593,8 @@ public class Database {
             mTeamsUpdateOne.setInt(3, losses);
             mTeamsUpdateOne.setInt(4, pointsfor);
             mTeamsUpdateOne.setInt(5, pointsagainst);
-            mTeamsUpdateOne.setInt(6, oldprice);
-            mTeamsUpdateOne.setInt(7, tid);
+            mTeamsUpdateOne.setInt(6, tid);
             res = mTeamsUpdateOne.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return res;
-    }
-
-    int teamsUpdateOneNoLastPriceChange(int tid, int price, int wins, int losses, int pointsfor, int pointsagainst) {
-        int res = -1;
-        try {
-            mTeamsUpdateOneNPC.setInt(1, price);
-            mTeamsUpdateOneNPC.setInt(2, wins);
-            mTeamsUpdateOneNPC.setInt(3, losses);
-            mTeamsUpdateOneNPC.setInt(4, pointsfor);
-            mTeamsUpdateOneNPC.setInt(5, pointsagainst);
-            mTeamsUpdateOneNPC.setInt(6, tid);
-            res = mTeamsUpdateOneNPC.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -635,6 +644,76 @@ public class Database {
         return true;
     }
 
+    boolean TeamHistoryInsert(int tid, Date date, int price) {
+        try {
+            mTeamHistoryInsert.setInt(1, tid);
+            mTeamHistoryInsert.setDate(2, date);
+            mTeamHistoryInsert.setInt(3, price);
+            mTeamHistoryInsert.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+
+    boolean TeamHistoryUpdate(int tid, Date date, int price) {
+        try {
+            mTeamHistoryUpdate.setInt(1, price);
+            mTeamHistoryUpdate.setDate(3, date);
+            mTeamHistoryUpdate.setInt(2, tid);
+            mTeamHistoryUpdate.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+
+    ArrayList<TeamHistoryRow> TeamHistorySelectOne(int tid) {
+        ArrayList<TeamHistoryRow> rows = new ArrayList<>();
+        try {
+            mTeamHistorySelectOne.setInt(1, tid);
+            ResultSet rs = mTeamHistorySelectOne.executeQuery();
+            while (rs.next()) {
+                rows.add(new TeamHistoryRow(rs.getInt("tid"), rs.getInt("price"), rs.getDate("date")));
+            }
+            return rows;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    boolean TransactionsInsert(int uid, int tid, int change, int price) {
+        try {
+            mTransactionsInsert.setInt(1, uid);
+            mTransactionsInsert.setInt(2, tid);
+            mTransactionsInsert.setInt(3, change);
+            mTransactionsInsert.setInt(4, price);
+            mTransactionsInsert.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+
+    ArrayList<TransactionsRow> TransactionsSelectOne(int uid) {
+        ArrayList<TransactionsRow> rows = new ArrayList<>();
+        try {
+            mTransactionsSelectOne.setInt(1, uid);
+            ResultSet rs = mTransactionsSelectOne.executeQuery();
+            while (rs.next()) {
+                rows.add(new TransactionsRow(rs.getInt("uid"), rs.getInt("tid"), rs.getInt("change"), rs.getInt("price")));
+            }
+            return rows;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     /**
      * Create a new table in the database. Prints an error if the statement doesn't work.
      * NOTE: as of now this just adds all the table I think I need to the database :)
@@ -642,16 +721,12 @@ public class Database {
      */
     boolean createTables() {
         try {
-            //TODO remove if statements they're garbage
-            if (mCreateUsers.execute()) {
-                System.out.println("Couldn't add Users to DB");
-            }
-            if (mCreateTeams.execute()) {
-                System.out.println("Couldn't add Teams to DB");
-            }
-            if (mCreateOwnerships.execute()) {
-                System.out.println("Couldn't add Ownerships to DB");
-            }
+            mCreateUsers.execute();
+            mCreateTeams.execute();
+            mCreateOwnerships.execute();
+            mCreateConfig.execute();
+            mCreateTeamHistory.execute();
+            mCreateTransactions.execute();
             return true;
         } catch (SQLException e) {
             e.printStackTrace();

@@ -105,7 +105,7 @@ public class App {
             // Gets the json data sent with the post 
             LoginRequest req = gson.fromJson(request.body(), LoginRequest.class);
 
-            int uid = db.signupOrLogin(req.username, req.password);
+            int uid = db.signupOrLogin(req.username, req.password.hashCode());
             if (uid == -2) {
                 return gson.toJson(new StructuredResponse("error", "Incorrect Password", uid));
             } else if (uid == -1) {
@@ -139,12 +139,11 @@ public class App {
 
         });
 
-        long sleepTime = 1000; // this is 8 hours, sort of a default wait time
+        long sleepTime = 10000000;
         String apiKey = env.get("API_KEY");
 
         // We want to update the results somewhat regularly
         while(true) {
-            
             sleepTime = db.getConfig(2); // see if the sleeptime has changed
             StatCollector sc = new StatCollector(db, (int)db.getConfig(3), db.getConfig(1), apiKey);
             System.out.println(sc.update()+" games read");

@@ -2,6 +2,7 @@ package admin;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.sql.Date;
 import java.io.IOException;
 
 import java.util.ArrayList;
@@ -19,11 +20,13 @@ public class App {
     static void tableMenu() {
         System.out.println("Select which table to work on");
         System.out.println("  [+] Create tables");
-        System.out.println("  [-] Drop tables");
+        System.out.println("  [-] Drop table");
         System.out.println("  [U] Users");
-        System.out.println("  [O] Ownserships");
+        System.out.println("  [O] Ownerships");
         System.out.println("  [T] Teams");
         System.out.println("  [A] Update Data");
+        System.out.println("  [H] TeamHistory");
+        System.out.println("  [R] Transactions");
         System.out.println("  [q] Quit the program");
         System.out.println("  [?] Help (this message)");
     }
@@ -73,6 +76,23 @@ public class App {
         System.out.println("  [-] Delete a row");
         System.out.println("  [+] Insert a new row");
         System.out.println("  [~] Update a row");
+        System.out.println("  [q] Quit Program");
+        System.out.println("  [?] Help (this message)");
+    }
+
+    static void TeamHistoryMenu() {
+        System.out.println("Ownership Menu");
+        System.out.println("  [*] Query for all rows");
+        System.out.println("  [+] Insert a new row");
+        System.out.println("  [~] Update a row");
+        System.out.println("  [q] Quit Program");
+        System.out.println("  [?] Help (this message)");
+    }
+
+    static void TransactionsMenu() {
+        System.out.println("Ownership Menu");
+        System.out.println("  [*] Query for all rows");
+        System.out.println("  [+] Insert a new row");
         System.out.println("  [q] Quit Program");
         System.out.println("  [?] Help (this message)");
     }
@@ -142,7 +162,7 @@ public class App {
                 String username = getString(in, "Enter the username");
                 String password = getString(in, "Enter the password");
                 
-                int res = db.usersInsertRow(username, password);
+                int res = db.usersInsertRow(username, password.hashCode());
                 System.out.println("  " + res + " rows added");
             } else if (action == '~') {
                 int id = getInt(in, "Enter the row ID");
@@ -182,8 +202,8 @@ public class App {
                 System.out.println("  Current Database Contents");
                 System.out.println("  -------------------------");
                 for (TeamRow rd : res) {
-                    System.out.println("  [" + rd.tid + "] Name: " + rd.name + ", Record: " + rd.wins + "-" + rd.losses + 
-                    "\tPoints Record: " + rd.pointsfor + "-" + rd.pointsagainst + "price change"+rd.lastprice+" -> " +rd.price);
+                    System.out.println(" $"+rd.price+"  [" + rd.tid + "] Name: " + rd.name + ", Record: " + rd.wins + "-" + rd.losses + 
+                    "\tPoints Record: " + rd.pointsfor + "-" + rd.pointsagainst);
                 }
             } else if (action == '-') {
                 int id = getInt(in, "Enter the row ID");
@@ -210,8 +230,7 @@ public class App {
                 int losses = getInt(in, "Enter the losses");
                 int pointsfor = getInt(in, "Enter the pointsfor");
                 int pointsagainst = getInt(in, "Enter the pointsagainst");
-                int lastprice = getInt(in, "Enter the lastprice");
-                int res = db.teamsUpdateOne(id, price, wins, losses, pointsfor, pointsagainst, lastprice);
+                int res = db.teamsUpdateOne(id, price, wins, losses, pointsfor, pointsagainst);
                 if (res == -1)
                     continue;
                 System.out.println("  " + res + " rows updated");
@@ -280,6 +299,50 @@ public class App {
                 long val = getLong(in, "Enter the val");
                 boolean res = db.configUpdateOne(cid, val);
                 System.out.println("  " + res + " rows updated");
+            }
+        }
+    }
+
+    static void TeamHistoryTable(Database db, BufferedReader in) {
+        while (true) {
+            char action = prompt(in, "*q-+~?");
+            if (action == '?') {
+                TeamHistoryMenu();
+            } else if (action == 'q') {
+                break;
+            } else if (action == '*') {
+                int tid = getInt(in, "Enter the tid");
+                ArrayList<TeamHistoryRow> res = db.TeamHistorySelectOne(tid);
+                System.out.println("  " + res.size() + " rows returned");
+            } else if (action == '+') {
+                int tid = getInt(in, "Enter the tid");
+                int price = getInt(in, "Enter the price");
+                boolean res = db.TeamHistoryInsert(tid, new Date(new java.util.Date().getTime()),price);
+                System.out.println("  " + res + " rows added");
+            } else if (action == '~') {
+                System.out.println("Not implemented :(");
+            }
+        }
+    }
+
+    static void TransactionsTable(Database db, BufferedReader in) {
+        while (true) {
+            char action = prompt(in, "1q*+~?");
+            if (action == '?') {
+                ownershipsMenu();
+            } else if (action == 'q') {
+                break;
+            } else if (action == '*') {
+                System.out.println("not implemented :(");
+            } else if (action == '+') {
+                int uid = getInt(in, "Enter the uid");
+                int tid = getInt(in, "Enter the tid");
+                int change = getInt(in, "Enter the change");
+                int price = getInt(in, "Enter the price");
+                boolean res = db.TransactionsInsert(uid, tid, change, price);
+                System.out.println("  " + res + " row added");
+            } else if (action == '~') {
+                System.out.println("no implemented");
             }
         }
     }
@@ -366,7 +429,7 @@ public class App {
         
         // Loop trough the menu selection
         while (true) {
-            char tableAction = prompt(in, "+-UOTACq?");
+            char tableAction = prompt(in, "+-UOTACHRq?");
             if (tableAction == 'q') {
                 break;
             } else if (tableAction == '?') {
@@ -389,6 +452,10 @@ public class App {
                 System.out.println("Successfully? processed "+gamesRead+" games");
             } else if (tableAction == 'C') {
                 configTable(db, in);
+            } else if (tableAction == 'H') {
+                TeamHistoryTable(db, in);
+            } else if (tableAction == 'R') {
+                TransactionsTable(db, in);
             } else {
                 continue;
             }

@@ -28,7 +28,7 @@ public class DatabaseTest extends TestCase {
         Database db = Database.getDatabase(db_url);
         assertTrue("Creation of Database", db.createTables());
         
-        int uid = db.signupOrLogin("test_user", "test_pass");
+        int uid = db.signupOrLogin("test_user", "test_pass".hashCode());
         assertTrue(uid >= 1);
         int tid = 12345;
         // try {

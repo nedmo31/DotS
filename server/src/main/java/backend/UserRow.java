@@ -9,13 +9,14 @@ public class UserRow {
 
     public final int uid, money, networth;
 
-    public String username;
+    public final String username;
 
-    public ArrayList<NamedOwnership> ownerships;
+    public final ArrayList<NamedOwnership> ownerships;
+    public final ArrayList<TransactionsRow> transactions;
 
-    UserRow(int uid, String username, int networth, int money, ArrayList<NamedOwnership> ownerships) {
+    UserRow(int uid, String username, int networth, int money, ArrayList<NamedOwnership> ownerships, ArrayList<TransactionsRow> transactions) {
         this.uid = uid; this.money = money;
         this.username = username; this.networth = networth;
-        this.ownerships = ownerships;
+        this.ownerships = ownerships; this.transactions = transactions;
     }
 }

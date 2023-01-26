@@ -63,7 +63,6 @@ public class StatCollector {
         return matches.size();
     }
 
-    @SuppressWarnings("unused") // maybe it is dead code but I'm pretty sure it isn't. Got tired of the warning
     public ArrayList<GameToProcess> getLeagueMatches(Database db, String link, long lastMatchID) throws Exception {
         ArrayList<GameToProcess> matches = new ArrayList<>();
         ArrayList<Integer> teams = getTeamsInDB(db);
@@ -80,8 +79,22 @@ public class StatCollector {
 
         while (!(line = bufferedReader.readLine()).startsWith("\"results_rem"))  { }
         matchesRemaining = Integer.parseInt(line.substring(20, line.indexOf(",")));
+        System.out.println("Matches remaining: "+matchesRemaining);
 
-        while ((line = bufferedReader.readLine()) != null)  { 
+        while (true)  { 
+            line = bufferedReader.readLine();
+            if (line == null && matchesRemaining > 0) {
+                url = new URL(link+"&start_at_match_id="+(matchID-1)); 
+                urlConnection = url.openConnection();  
+                bufferedReader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream())); 
+
+                while (!(line = bufferedReader.readLine()).startsWith("\"results_rem"))  { }
+                matchesRemaining = Integer.parseInt(line.substring(20, line.indexOf(",")));
+                System.out.println("Matches remaining: "+matchesRemaining);
+            } else if (line == null) {
+                System.out.println("Breaking");
+                break;
+            }
             if (line.startsWith("\"match_id")) {
                 matchID = Long.parseLong(line.substring(11, line.indexOf(",")));
                 if (matchID <= lastMatchID) 
@@ -101,14 +114,6 @@ public class StatCollector {
                     matches.add(new GameToProcess(matchID, radTeam, direTeam));
                 }
                 radTeam = direTeam = false;
-            }
-            if (line == null && matchesRemaining > 0) {
-                url = new URL(link+"&start_at_match_id="+(matchID-1)); 
-                urlConnection = url.openConnection();  
-                bufferedReader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream())); 
-
-                while (!(line = bufferedReader.readLine()).startsWith("\"results_rem"))  { }
-                matchesRemaining = Integer.parseInt(line.substring(20, line.indexOf(",")));
             }
         }
         bufferedReader.close();

@@ -17,6 +17,26 @@ async function postData(url = '', data = {}) {
     return response.json(); // parses JSON response into native JavaScript objects
   }
 
+// Function Executes on click of login button.
+function validate(){
+  var username = document.getElementById("username").value;
+  var password = document.getElementById("password").value;
+  postData('https://dota-stonks.herokuapp.com/login', {'username':username, 'password':password})
+    .then((response) => {
+      const uid = response.mData;
+      if (uid > 0) {
+        getPortfolio(uid);
+        getTeams(uid);
+        getUsers();
+        document.getElementById("tabs").style.display = "block"
+        document.getElementById("login").style.display = "none"
+      }
+      else {
+        alert("Error on login");
+      }
+    });
+}
+
 function openTab(evt, tabName) {
     // Declare all variables
     var i, tabcontent, tablinks;
@@ -63,7 +83,7 @@ async function getPortfolio(uid) {
                 const tid = data.mData.ownerships[i].tid
                 var insert = document.createElement("li");
                 var img = document.createElement("img");
-                img.setAttribute("src", "dota_logo.png");
+                img.setAttribute("src", tid+".png");
                 insert.appendChild(img);
 
                 var sellButton = document.createElement("button")
@@ -83,6 +103,8 @@ async function getPortfolio(uid) {
                 insert.appendChild(sellButton)
                 document.getElementById("portfolio").appendChild(insert)
             }
+
+            document.getElementById("Home").style.display = "block"
         });
 }
 
@@ -95,7 +117,7 @@ async function getTeams(uid) {
                 const tid = data.mData[i].tid;
                 var insert = document.createElement("li");
                 var img = document.createElement("img");
-                img.setAttribute("src", "dota_logo.png");
+                img.setAttribute("src", tid+".png");
                 insert.appendChild(img);
 
                 var buyButton = document.createElement("button")
@@ -140,17 +162,5 @@ async function getUsers() {
             }
         })
 }
-
-
-
-const username = prompt("Please enter username. New users will be registered");
-const pass = prompt("Please enter password");
-postData('https://dota-stonks.herokuapp.com/login', {'username':username, 'password':pass})
-    .then((response) => {
-      const uid = response.mData;
-      getPortfolio(uid);
-      getTeams(uid);
-      getUsers();
-    });
 
 

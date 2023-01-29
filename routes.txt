@@ -20,6 +20,6 @@ Data Pull :
 objects
 User {uid, username, networth, money, ownerships, transactions}
 Team {tid, name, price, wins, losses, pointsfor, pointsagainst, history}
-Ownership {uid, tid, count, name}
+Ownership {uid, tid, count, name, price}
 History {tid, date, price}
 Transaction {uid, tid, price, change}  // change of 3 would be 3 purchased. change of -2 would be two sold

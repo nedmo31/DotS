@@ -1,9 +1,6 @@
 package backend;
 
 
-/**
- * The LikeRow to mimic a row from the Mlikes table
- */
 public class OwnershipsRow {
 
     public final int uid, tid, count;

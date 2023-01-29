@@ -10,11 +10,27 @@
   </head>
   <body>
 
+    <div class="container" id="login">
+      <div class="main">
+        <h2>Login or Sign up</h2>
+        <form id="form_id" method="post" name="myform">
+          <label>User Name :</label>
+          <input type="text" name="username" id="username"/>
+          <label>Password :</label>
+          <input type="password" name="password" id="password"/>
+          <input type="button" value="Login" id="submit" onclick="validate()"/>
+        </form>
+        <span><b>New User? </b>Just enter new login information to sign up.</span>
+        </div>
+      </div>
+  </div>
+
     <!-- Tab links -->
-    <div class="tab">
+    <div class="tab" id="tabs">
       <button class="tablinks" onclick="openTab(event, 'Home')">Home</button>
       <button class="tablinks" onclick="openTab(event, 'Teams')">Teams</button>
       <button class="tablinks" onclick="openTab(event, 'Social')">Social</button>
+      <button class="tablinks" onclick="openTab(event, 'About')">About</button>
     </div>
 
     <!-- Tab content -->
@@ -43,5 +59,10 @@
         </div>
       </div>
     </div>
+
+    <div id="About" class="tabcontent">
+      <p>Buy and Sell teams from the Golf? franchise! Their value is updated anytime they play an official.</p>
+      <br>
+      <p>Please help me make this look better :)</p>
   </body>
 </html>

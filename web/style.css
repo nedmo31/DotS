@@ -1,9 +1,14 @@
 /* Style the tab */
+body {
+  background-color: #4f4f4f;
+  color: white;
+}
+
 .tab {
     display: none;
     overflow: hidden;
-    border: 1px solid #ccc;
-    background-color: #f1f1f1;
+    border: 1px solid rgb(0, 0, 0);
+    background-color: #292626;
   }
   
   /* Style the buttons that are used to open the tab content */
@@ -16,16 +21,17 @@
     font-size: large;
     padding: 14px 16px;
     transition: 0.3s;
+    color: #ddd;
   }
   
   /* Change background color of buttons on hover */
   .tab button:hover {
-    background-color: #ddd;
+    background-color: rgb(77, 75, 75);
   }
   
   /* Create an active/current tablink class */
   .tab button.active {
-    background-color: #ccc;
+    background-color: rgb(69, 68, 68);
   }
   
   /* Style the tab content */
@@ -35,16 +41,28 @@
     border-top: none;
   }
 
-  .buyButton {
-    float: right;
-    font-size: large;
-    color: brown;
-  }
 
-  .sellButton {
-    float: right;
-    font-size: large;
-    color: brown;
+  li button {
+    display: inline-block;
+    padding: 15px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    outline: none;
+    color: #fff;
+    background-color: #4CAF50;
+    border: none;
+    border-radius: 15px;
+    position: right;
+  }
+  
+  li button:hover {background-color: #3e8e41}
+  
+  li button:active {
+    background-color: #3e8e41;
+    box-shadow: 0 5px #666;
+    transform: translateY(4px);
   }
 
 * {margin: 0; padding: 0;}
@@ -59,6 +77,7 @@ ul {
 }
  
 h3 {
+  color: white;
   font: bold 20px/1.5 Helvetica, Verdana, sans-serif;
 }
  
@@ -68,16 +87,18 @@ li img {
 }
  
 li p {
+  color: white;
   font: 200 12px/1.5 Georgia, Times New Roman, serif;
 }
  
 li {
   padding: 10px;
   overflow: auto;
+  width:100%;
 }
  
 li:hover {
-  background: #eee;
+  background-color: rgb(77, 75, 75);
   cursor: pointer;
 }
 
@@ -86,11 +107,11 @@ body {
 }
 body {
 	font: 16px/1.2 "Roboto", sans-serif;
-	color: #333;
+	color: white;
 }
 a {
 	display: inline-block;
-	color: #333;
+	color: white;
 	text-decoration: none;
 }
 .blog {
@@ -109,7 +130,7 @@ a {
 	width: 300px;
 	height: auto;
 	border-radius: 10px;
-	background-color: white;
+	background-color: rgb(77, 75, 75);
 	box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
 	position: absolute;
 	top: 50%;
@@ -117,59 +138,6 @@ a {
 	transform: translate(-50%, -50%);
 	z-index: 1;
 	overflow: hidden;
-}
-
-/* leaderboard */
-
-/* head */
-.leaderboard .head {
-	padding: 20px 16px;
-	color: black;
-	font-size: 20px;
-	text-align: center;
-  size: 100;
-}
-.leaderboard .head h1 {
-	display: inline-block;
-	margin-left: 4px;
-}
-
-/* body */
-.leaderboard .body {
-	color: snow;
-	font-size: 16px;
-}
-.leaderboard ol {
-	counter-reset: number; 
-}
-.leaderboard li {
-	padding: 16px;
-	display: flex;
-}
-.leaderboard li mark {
-	flex-grow: 1;
-	color: snow;
-	background-color: transparent;
-}
-.leaderboard li:before {
-	counter-increment: number; 
-	content: counter(number) "."; 
-	margin-right: 4px;
-}
-.leaderboard li:nth-child(1) {
-	background: #fa6855;
-}
-.leaderboard li:nth-child(2) {
-	background: #e0574f;
-}
-.leaderboard li:nth-child(3) {
-	background: #d7514d;
-}
-.leaderboard li:nth-child(4) {
-	background: #cd4b4b;
-}
-.leaderboard li:nth-child(5) {
-	background: #c24448;
 }
 
 /* Start Login CSS */
@@ -183,7 +151,7 @@ h2{
 hr{
   margin: 10px -50px;
   border: 0;
-  border-top: 1px solid #ccc;
+  border-top: 1px solid rgb(0, 0, 0);
   margin-bottom: 40px;
 }
 div.container{
@@ -213,8 +181,7 @@ font-size: 16px;
 border-radius: 5px;
 }
 label{
-color: #464646;
-text-shadow: 0 1px 0 #fff;
+color: white;
 font-size: 14px;
 font-weight: bold;
 }

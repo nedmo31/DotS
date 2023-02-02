@@ -1,0 +1,5 @@
+2/2/23 
+ - Changed website to dark theme 
+ - Made team pictures slightly smaller
+ - Added current money in top right corner 
+

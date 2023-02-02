@@ -72,6 +72,8 @@ div {
 }
  
 ul {
+  padding-left: 100px;
+  display: inline-block;
   list-style-type: none;
   width: 500px;
 }

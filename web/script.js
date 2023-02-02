@@ -88,8 +88,12 @@ async function getPortfolio(uid, show=true) {
 
             document.getElementById("portfolio").replaceChildren()
 
+            document.getElementById("currentmoney").innerHTML = " $ " + data.mData.money
+            document.getElementById("currentmoney").style.float = "right"
+
             const userInfo = data.mData.username + "\t\t\t\t\t$ " + data.mData.money
             document.getElementById("portHeader").innerHTML = userInfo  
+            
             const owned = data.mData.ownerships.length    
             if (owned == 0) {
                 document.getElementById("portfolio").innerHTML = "Nothing currently owned"
@@ -131,7 +135,8 @@ async function getTeams(uid) {
     fetch('https://dota-stonks.herokuapp.com/teams')
         .then((response) => response.json())
         .then((data) => {
-            console.log(data.mData)
+            var left = true
+
             for (i = 0; i < data.mData.length; i++) {
                 const tid = data.mData[i].tid;
                 var insert = document.createElement("li");
@@ -168,7 +173,12 @@ async function getTeams(uid) {
                 insert.appendChild(svg)
                 insert.appendChild(buyButton);
                 insert.appendChild(buy5Button);
-                document.getElementById("teamList").appendChild(insert)
+                if (left)
+                  document.getElementById("teamListLeft").appendChild(insert)
+                else {
+                  document.getElementById("teamListRight").appendChild(insert)
+                }
+                left = !left
             }
         })
 }

@@ -11,7 +11,7 @@ public class TeamRow {
     public final ArrayList<TeamHistoryRow> history;
 
     public final static int BASE_VALUE = 50;
-    public final static double RECENCY_WEIGHT = .7;
+    public final static double RECENCY_WEIGHT = .75;
 
     TeamRow(int tid, String name, int price, int wins, int losses, int pointsfor, int pointsagainst, ArrayList<TeamHistoryRow> history) {
         this.tid = tid; this.price = price; this.wins = wins;

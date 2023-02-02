@@ -102,7 +102,7 @@ public class Database {
             db.mOwnershipsDeleteOne = db.mConnection.prepareStatement("DELETE FROM Ownerships WHERE uid = ? AND tid = ?");
             
             // Insert prepared statements
-            db.mUsersInsertOne = db.mConnection.prepareStatement("INSERT INTO Users (uid, username, password, money) VALUES (default, ?, ?, 500)");
+            db.mUsersInsertOne = db.mConnection.prepareStatement("INSERT INTO Users (uid, username, password, money) VALUES (default, ?, ?, 1000)");
             db.mTeamsInsertOne = db.mConnection.prepareStatement("INSERT INTO Teams (tid, name, price, wins, losses, pointsfor, pointsagainst) VALUES (?, ?, ?, ?, ?, ?, ?)");
             db.mOwnershipsInsertOne = db.mConnection.prepareStatement("INSERT INTO Ownerships (uid, tid, count) VALUES (?, ?, ?)");
 
@@ -129,7 +129,7 @@ public class Database {
             // TeamHistory
             db.mTeamHistoryInsert = db.mConnection.prepareStatement("INSERT INTO TeamHistory (tid, date, price) VALUES (?, ?, ?)");
             db.mTeamHistoryUpdate = db.mConnection.prepareStatement("UPDATE TeamHistory SET price=? WHERE tid=? AND date=?");
-            db.mTeamHistorySelectOne = db.mConnection.prepareStatement("SELECT * FROM TeamHistory WHERE tid=? ODRER BY date");
+            db.mTeamHistorySelectOne = db.mConnection.prepareStatement("SELECT * FROM TeamHistory WHERE tid=? ORDER BY date");
 
             //Transactions
             db.mTransactionsInsert = db.mConnection.prepareStatement("INSERT INTO Transactions (uid, tid, change, price) VALUES (?, ?, ?, ?)");
